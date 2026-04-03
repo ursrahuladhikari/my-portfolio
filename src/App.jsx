@@ -235,7 +235,7 @@ const App = () => {
       </header>
 
       {/* Hero */}
-      <section className="min-h-screen flex flex-col justify-center px-6 pt-20 overflow-hidden relative">
+      <section className="pt-32 pb-24 md:pt-40 md:pb-32 lg:pt-20 lg:pb-0 lg:min-h-screen flex flex-col justify-center px-6 overflow-hidden relative">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#ff1493]/10 blur-[120px] rounded-full pointer-events-none" />
 
         <div className="max-w-6xl mx-auto w-full relative z-10">
