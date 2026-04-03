@@ -447,7 +447,7 @@ const App = () => {
                   <div className="hidden md:block col-span-1 text-right pt-1">
                     <span className="text-sm font-bold text-[#ff1493] mono">{job.period}</span>
                   </div>
-                  <div className="col-span-4 relative md:pl-8 md:border-l border-slate-400 dark:border-slate-700">
+                  <div className="col-span-4 relative pl-8 md:border-l border-slate-400 dark:border-slate-700">
                     {/* Mobile continuous line */}
                     <div className="absolute left-0 top-0 bottom-[-3rem] w-px bg-slate-400 dark:bg-slate-700 md:hidden" />
 
