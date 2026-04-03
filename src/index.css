@@ -1,0 +1,81 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500&family=Inter:wght@300;400;700;900&display=swap');
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-accent: #06b6d4;
+  --color-accent-deep: #3b82f6;
+  --color-dark-bg: #0f172a;
+  --font-inter: 'Inter', sans-serif;
+  --font-fira: 'Fira Code', monospace;
+}
+
+body {
+  font-family: var(--font-inter);
+}
+
+.mono {
+  font-family: var(--font-fira);
+}
+
+.pink-glow {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.35);
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, #06b6d4, #3b82f6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-pink-gradient {
+  background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+}
+
+.code-bg-light {
+  background-image: radial-gradient(circle at 2px 2px, rgba(6, 182, 212, 0.05) 1px, transparent 0);
+  background-size: 40px 40px;
+}
+
+.code-bg-dark {
+  background-image: radial-gradient(circle at 2px 2px, rgba(6, 182, 212, 0.15) 1px, transparent 0);
+  background-size: 40px 40px;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0px); }
+}
+
+.terminal-cursor {
+  border-right: 3px solid var(--color-accent);
+  animation: blink 0.7s infinite;
+}
+
+@keyframes blink {
+  50% { border-color: transparent; }
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.dark .glass-card {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-5px);
+}
