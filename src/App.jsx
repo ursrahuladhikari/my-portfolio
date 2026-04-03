@@ -249,7 +249,7 @@ const App = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div className="fade-up delay-100">
               <div className="inline-block px-3 py-1 mb-6 rounded-md bg-pink-900/20 border border-pink-500/30 text-[#ff1493] mono text-sm shadow-[0_0_10px_rgba(255,20,147,0.15)] backdrop-blur-sm">
                 $ whoami
@@ -276,7 +276,7 @@ const App = () => {
             </div>
 
             {/* Decorative Terminal Element */}
-            <div className="hidden lg:block relative justify-self-end w-max">
+            <div className="hidden md:block relative justify-self-end w-max md:scale-90 lg:scale-100 origin-right">
 
               {/* Floating Query Panel (Behind) */}
               <div className="absolute -bottom-6 -left-4 glass-card bg-[#0f172a] border border-[#ff1493]/30 px-6 py-3 rounded-xl -rotate-6 shadow-2xl z-0">
@@ -290,7 +290,7 @@ const App = () => {
                   <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                   <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 </div>
-                <div className="mono text-[#4ade80] text-sm leading-relaxed tracking-wide whitespace-nowrap">
+                <div className="mono text-[#4ade80] text-xs lg:text-sm leading-relaxed tracking-wide whitespace-nowrap">
                   <p className="text-slate-300">{`{`}</p>
                   <div className="pl-6">
                     <p><span className="text-slate-300">"name"</span>: "Rahul Adhikari",</p>
