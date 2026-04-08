@@ -23,6 +23,102 @@ const TYPEWRITER_PHRASES = [
   "BI Analyst / Data Analyst."
 ];
 
+// Full-page mouse-reactive particle canvas
+const ParticleCanvas = () => {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const c = canvasRef.current;
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    let W, H, animId;
+    const COLORS = ['#06b6d4', '#22d3ee', '#4ade80', '#10b981'];
+    // Mouse interaction removed as requested
+    let particles = [];
+
+    const resize = () => {
+      W = c.width = window.innerWidth;
+      H = c.height = window.innerHeight;
+    };
+
+    window.addEventListener('resize', () => { resize(); buildParticles(); });
+    resize();
+
+    const buildParticles = () => {
+      const count = Math.min(140, Math.floor((W * H) / 14000));
+      particles = [];
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * W, y: Math.random() * H,
+          ox: 0, oy: 0,
+          vx: (Math.random() - 0.5) * 1.2, vy: (Math.random() - 0.5) * 1.2,
+          r: Math.random() * 1.8 + 0.5,
+          color: COLORS[Math.floor(Math.random() * COLORS.length)]
+        });
+      }
+    };
+    buildParticles();
+
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H);
+
+      // Draw connecting lines
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 150) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(6,182,212,${(1 - d / 150) * 0.18})`;
+            ctx.lineWidth = .6;
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Draw & update particles
+      particles.forEach(p => {
+        // Clamp speed
+        const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+        if (speed > 2.5) { p.vx = (p.vx / speed) * 2.5; p.vy = (p.vy / speed) * 2.5; }
+
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > W) p.vx *= -1;
+        if (p.y < 0 || p.y > H) p.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = .7;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+
+      animId = requestAnimationFrame(draw);
+    };
+    draw();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', resize);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'fixed', top: 0, left: 0,
+        width: '100vw', height: '100vh',
+        pointerEvents: 'none', zIndex: 0,
+        opacity: 0.85
+      }}
+    />
+  );
+};
+
 const App = () => {
   const [dark, setDark] = useState(false);
   const [projectModal, setProjectModal] = useState(null);
@@ -157,6 +253,8 @@ const App = () => {
 
   return (
     <div className={`min-h-screen text-slate-900 dark:text-slate-100 transition-colors duration-300 ${dark ? 'bg-[#0f172a] code-bg-dark' : 'bg-[#fafafa]'}`}>
+      {/* Full-page mouse-reactive particle canvas */}
+      <ParticleCanvas />
       <style>{`
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .fade-up { animation: fadeUp 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
@@ -184,7 +282,7 @@ const App = () => {
               </button>
             </div>
             <nav className="space-y-4 font-mono text-sm">
-              {['Home', 'Projects', 'Resume', 'Tools', 'More', 'Contact'].map(item => (
+              {['Home', 'Projects', 'Resume', 'Tools', 'Freelance', 'Contact'].map(item => (
                 <button
                   key={item}
                   onClick={() => scrollToId(item === 'Home' ? '' : item.toLowerCase())}
@@ -209,7 +307,7 @@ const App = () => {
 
           <nav className="flex items-center gap-2 sm:gap-6">
             <ul className="hidden md:flex items-center gap-8 font-mono text-sm">
-              {['Home', 'Projects', 'Resume', 'Tools', 'More'].map(item => (
+              {['Home', 'Projects', 'Resume', 'Tools'].map(item => (
                 <li key={item}>
                   <button
                     onClick={() => scrollToId(item === 'Home' ? '' : item.toLowerCase())}
@@ -219,12 +317,22 @@ const App = () => {
                   </button>
                 </li>
               ))}
+              <li className="relative group">
+                <button className="font-medium text-slate-800 hover:text-[#ff1493] dark:text-slate-300 dark:hover:text-[#ff1493] transition-colors flex items-center gap-1">
+                  More <ChevronRight size={14} className="rotate-90 group-hover:-rotate-90 transition-transform" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-36 bg-white dark:bg-slate-800 shadow-xl rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all border border-[#ff1493]/10">
+                  <button onClick={() => scrollToId('freelance')} className="block w-full text-left px-5 py-3 text-slate-700 dark:text-slate-300 hover:bg-pink-50 dark:hover:bg-slate-700 hover:text-[#ff1493] transition-colors font-medium">
+                    Freelance
+                  </button>
+                </div>
+              </li>
             </ul>
 
             <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden md:block" />
 
             <button onClick={() => setDark(!dark)} className="p-2.5 rounded-full hover:bg-pink-50 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-300 hover:text-[#ff1493] dark:hover:text-[#ff1493]">
-              {dark ? <Sun size={18} /> : <Moon size={18} />}
+              {dark ? <Moon size={18} /> : <Sun size={18} />}
             </button>
 
             <button onClick={() => setDrawerOpen(true)} className="md:hidden p-2.5 rounded-full hover:bg-pink-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-[#ff1493]">
@@ -404,9 +512,31 @@ const App = () => {
               <div className="mono text-[#ff1493] text-sm mb-2">// Experience</div>
               <h2 className="text-4xl md:text-5xl font-black mb-2">Career Journey</h2>
             </div>
-            <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-3 bg-pink-gradient text-white rounded-lg font-bold shadow-lg hover:scale-105 transition-all">
-              <FileText size={18} /> Download CV
-            </button>
+            <div className="flex items-center gap-4">
+              <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-3 bg-pink-gradient text-white rounded-lg font-bold shadow-lg hover:scale-105 transition-all">
+                <FileText size={18} /> Download CV
+              </button>
+              <a href="https://shorturl.at/IvKAz" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-6 py-3 bg-red-600 border border-red-500 text-white rounded-lg font-bold shadow-[0_0_15px_rgba(239,68,68,0.6)] hover:shadow-[0_0_25px_rgba(239,68,68,0.9)] hover:scale-105 transition-all">
+                PDF
+              </a>
+            </div>
+          </div>
+
+          {/* Professional Summary */}
+          <div className="mb-16 relative">
+            {/* L-shaped top-left corner */}
+            <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-[#06b6d4]" />
+            {/* L-shaped bottom-right corner */}
+            <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-[#ff1493]" />
+            <div className="px-8 py-6">
+              <div className="mono text-[#ff1493] text-xs mb-3">// Professional Summary</div>
+              <p className="text-slate-700 dark:text-slate-300 text-base leading-relaxed">
+                Results-driven Data Analyst with 3+ years of experience transforming raw data into strategic insights through Power BI, SQL, Python, and advanced Excel automation. Proven track record of building scalable dashboards, end-to-end ETL pipelines, and AI-driven analytics solutions across finance, e-commerce, and research domains.
+              </p>
+              <p className="text-slate-600 dark:text-slate-400 text-base leading-relaxed mt-3">
+                Adept at bridging technical complexity with business clarity — delivering data products that drive measurable growth, reduce operational friction, and empower stakeholder decision-making at scale.
+              </p>
+            </div>
           </div>
 
           <div className="space-y-12">
@@ -472,6 +602,73 @@ const App = () => {
               </div>
             ))}
           </div>
+
+          {/* Internship & Training */}
+          <div className="mt-12">
+            <div className="flex items-center gap-3 mb-10">
+              <div className="mono text-[#06b6d4] text-sm">// Internship &amp; Training</div>
+              <div className="h-px flex-1 bg-gradient-to-r from-[#06b6d4]/40 to-transparent" />
+            </div>
+            <div className="space-y-12">
+              {[
+                {
+                  title: '3 Months Internship – Data Analytics Program',
+                  company: 'Labmentix',
+                  period: 'Jan 2022 – Apr 2022',
+                  color: '#06b6d4',
+                  points: [
+                    'Completed hands-on Data Analytics & AI internships focused on real-world projects using SQL, Excel, Power BI, Tableau, and Python, with mentorship-driven learning and practical reporting.',
+                    'Built end-to-end dashboards and analytics solutions, applying Python (Pandas, Seaborn), SQL, MongoDB, Power Query, DAX, and VBA Macros on projects including land price prediction and X-ray image classification (CNN).'
+                  ]
+                },
+                {
+                  title: 'Data Science & Machine Learning Training',
+                  company: 'Excellence Technology, Mohali',
+                  period: 'Feb 2021 – Jun 2021',
+                  color: '#a78bfa',
+                  points: [
+                    'Engineered Python-based ML projects using TensorFlow, OpenCV, and NumPy, building deployment-ready prototypes with real-world data pipelines and visualizations (Matplotlib) in collaborative team environments using Jupyter, PyCharm, and Anaconda.'
+                  ]
+                },
+                {
+                  title: 'Core Python Programming Training',
+                  company: 'Nordia Ventures, Mohali',
+                  period: 'Jun 2019 – Jul 2019',
+                  color: '#22d3ee',
+                  points: [
+                    'Mastered core Python concepts through coding challenges and mini projects, building strong foundations in functions, data structures, and automation for future data science applications.'
+                  ]
+                }
+              ].map((item, idx) => (
+                <div key={idx} className="relative pl-8 md:pl-0">
+                  <div className="md:grid md:grid-cols-5 md:gap-8 items-start relative">
+                    <div className="hidden md:block col-span-1 text-right pt-1">
+                      <span className="text-sm font-bold mono" style={{ color: item.color }}>{item.period}</span>
+                    </div>
+                    <div className="col-span-4 relative pl-8 md:border-l border-slate-300 dark:border-slate-700">
+                      <div className="absolute left-0 top-0 bottom-[-3rem] w-px md:hidden" style={{ background: item.color + '60' }} />
+                      <div className="absolute left-[-5px] md:left-[-5px] top-2 w-2.5 h-2.5 rounded-full ring-4 ring-cyan-100 dark:ring-slate-900 z-10" style={{ background: item.color }} />
+                      <div className="mb-2 flex flex-col sm:flex-row sm:items-center justify-between md:hidden">
+                        <h3 className="text-xl font-bold">{item.title}</h3>
+                        <span className="text-sm font-bold mono" style={{ color: item.color }}>{item.period}</span>
+                      </div>
+                      <h3 className="hidden md:block text-xl font-bold mb-1">{item.title}</h3>
+                      <p className="inline-block px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-sm font-bold text-slate-500 mb-4 mono">{item.company}</p>
+                      <ul className="space-y-3">
+                        {item.points.map((p, i) => (
+                          <li key={i} className="text-slate-700 dark:text-slate-400 text-sm leading-relaxed flex gap-3">
+                            <span className="mt-1.5 w-1 h-1 rounded-full shrink-0" style={{ background: item.color }} />
+                            {p}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       </section>
 
