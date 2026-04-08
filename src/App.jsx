@@ -125,7 +125,24 @@ const App = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [skillsVisible, setSkillsVisible] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const skillsRef = useRef(null);
+
+  // Preloader target logic
+  useEffect(() => {
+    let currentProgress = 0;
+    const interval = setInterval(() => {
+      currentProgress += Math.floor(Math.random() * 8) + 2;
+      if (currentProgress >= 100) {
+        currentProgress = 100;
+        clearInterval(interval);
+        setTimeout(() => setIsLoading(false), 500);
+      }
+      setLoadingProgress(currentProgress);
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
 
   // Typewriter effect state
   const [typewriterText, setTypewriterText] = useState("");
@@ -253,6 +270,33 @@ const App = () => {
 
   return (
     <div className={`min-h-screen text-slate-900 dark:text-slate-100 transition-colors duration-300 ${dark ? 'bg-[#0f172a] code-bg-dark' : 'bg-[#fafafa]'}`}>
+      {/* Preloader Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#0a0a1a] transition-all duration-700">
+          <div className="absolute inset-0 pointer-events-none opacity-40 mix-blend-screen bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/40 via-[#0a0a1a] to-[#0a0a1a]"></div>
+          
+          <div className="z-10 text-center flex flex-col items-center">
+            <div className="mb-8">
+              <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#06b6d4] to-[#ff1493] tracking-widest drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]">
+                {loadingProgress}%
+              </h1>
+            </div>
+            
+            <div className="w-64 h-1.5 bg-slate-800 rounded-full overflow-hidden mb-8 shadow-inner">
+              <div 
+                className="h-full bg-gradient-to-r from-[#06b6d4] to-[#ff1493] shadow-[0_0_10px_rgba(255,20,147,0.8)] transition-all duration-75" 
+                style={{ width: `${loadingProgress}%` }}
+              ></div>
+            </div>
+
+            <div className="h-12 flex items-center justify-center">
+              <div className={`mono text-[#06b6d4] text-sm uppercase tracking-widest transition-opacity duration-300 ${loadingProgress === 100 ? 'opacity-100 font-bold' : 'animate-pulse opacity-70'}`}>
+                {loadingProgress === 100 ? 'Ready.' : 'Initializing Data...'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Full-page mouse-reactive particle canvas */}
       <ParticleCanvas />
       <style>{`
