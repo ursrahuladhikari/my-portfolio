@@ -14,7 +14,8 @@ import {
   BrainCircuit,
   Terminal,
   MessageCircle,
-  ChevronRight
+  ChevronRight,
+  ArrowRight
 } from "lucide-react";
 
 const TYPEWRITER_PHRASES = [
@@ -22,6 +23,271 @@ const TYPEWRITER_PHRASES = [
   "Building scalable data pipelines.",
   "BI Analyst / Data Analyst."
 ];
+
+// Evervault-style Matrix Spotlight Card
+const EvervaultCard = ({ children, className = '' }) => {
+  const cardRef = useRef(null);
+  const canvasRef = useRef(null);
+  const animFrameRef = useRef(null);
+  const mouseRef = useRef({ x: -9999, y: -9999, inside: false });
+  const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*<>{}[]|~';
+  const COLORS = ['#06b6d4', '#818cf8', '#a78bfa', '#38bdf8', '#ff1493', '#22d3ee'];
+
+  useEffect(() => {
+    const card = cardRef.current;
+    const canvas = canvasRef.current;
+    if (!card || !canvas) return;
+    const ctx = canvas.getContext('2d');
+    const FONT_SIZE = 12;
+    const BASE_ALPHA = 0;      // invisible until mouse hover
+    const SPOT_ALPHA = 0.95;   // bright in spotlight
+    const RADIUS = 150;
+    let cols, rows, grid = [];
+
+    const resize = () => {
+      canvas.width = card.offsetWidth;
+      canvas.height = card.offsetHeight;
+      cols = Math.ceil(canvas.width / FONT_SIZE);
+      rows = Math.ceil(canvas.height / FONT_SIZE);
+      grid = Array.from({ length: rows }, () =>
+        Array.from({ length: cols }, () => ({
+          char: CHARS[Math.floor(Math.random() * CHARS.length)],
+          color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          speed: Math.random() * 0.5 + 0.15
+        }))
+      );
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(card);
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.font = `bold ${FONT_SIZE}px monospace`;
+
+      grid.forEach((row, r) => {
+        row.forEach((cell, c) => {
+          if (Math.random() < cell.speed * 0.06) {
+            cell.char = CHARS[Math.floor(Math.random() * CHARS.length)];
+            cell.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+          }
+          const x = c * FONT_SIZE;
+          const y = r * FONT_SIZE + FONT_SIZE;
+          const mx = mouseRef.current.x;
+          const my = mouseRef.current.y;
+          const dist = Math.sqrt((x - mx) ** 2 + (y - my) ** 2);
+          const spotFactor = mouseRef.current.inside ? Math.max(0, 1 - dist / RADIUS) : 0;
+          const alpha = BASE_ALPHA + spotFactor * (SPOT_ALPHA - BASE_ALPHA);
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = cell.color;
+          ctx.fillText(cell.char, x, y);
+        });
+      });
+      ctx.globalAlpha = 1;
+      animFrameRef.current = requestAnimationFrame(draw);
+    };
+    draw();
+
+    const onMove = (e) => {
+      const rect = card.getBoundingClientRect();
+      mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top, inside: true };
+    };
+    const onLeave = () => { mouseRef.current = { x: -9999, y: -9999, inside: false }; };
+    card.addEventListener('mousemove', onMove);
+    card.addEventListener('mouseleave', onLeave);
+
+    return () => {
+      cancelAnimationFrame(animFrameRef.current);
+      ro.disconnect();
+      card.removeEventListener('mousemove', onMove);
+      card.removeEventListener('mouseleave', onLeave);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={cardRef}
+      className={`glass-card ${className}`}
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: '1rem',
+      }}
+    >
+      {/* Matrix canvas — drawn ON TOP of the bg, BELOW text */}
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: 'absolute', top: 0, left: 0,
+          width: '100%', height: '100%',
+          pointerEvents: 'none',
+          zIndex: 1,
+          borderRadius: 'inherit'
+        }}
+      />
+      {/* Content sits above canvas */}
+      <div style={{ position: 'relative', zIndex: 2 }}>{children}</div>
+    </div>
+  );
+};
+
+// Dot Grid Card — glowing dot grid with mouse bulge effect (used on project cards)
+// Node Graph Card — drifting neural-network nodes + connections, mouse spotlight (project cards)
+const NodeGraphCard = ({ children, style = {}, className = '' }) => {
+  const cardRef = useRef(null);
+  const canvasRef = useRef(null);
+  const animRef = useRef(null);
+  const mouseRef = useRef({ x: -9999, y: -9999, inside: false });
+  const COLORS = ['#06b6d4', '#818cf8', '#a78bfa', '#38bdf8', '#ff1493', '#22d3ee'];
+  const NODE_COUNT = 22;
+  const CONNECT_DIST = 95;
+  const RADIUS = 150;
+
+  useEffect(() => {
+    const card = cardRef.current;
+    const canvas = canvasRef.current;
+    if (!card || !canvas) return;
+    const ctx = canvas.getContext('2d');
+    let nodes = [];
+
+    const buildNodes = () => {
+      nodes = Array.from({ length: NODE_COUNT }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.45,
+        vy: (Math.random() - 0.5) * 0.45,
+        r: Math.random() * 1.8 + 1,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        phase: Math.random() * Math.PI * 2
+      }));
+    };
+
+    const resize = () => {
+      canvas.width = card.offsetWidth;
+      canvas.height = card.offsetHeight;
+      buildNodes();
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(card);
+
+    let tick = 0;
+    const draw = () => {
+      tick += 0.018;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Always update node positions (drift)
+      nodes.forEach(n => {
+        n.x += n.vx; n.y += n.vy;
+        if (n.x < 0 || n.x > canvas.width)  n.vx *= -1;
+        if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+        n.phase += 0.03;
+      });
+
+      if (!mouseRef.current.inside) {
+        animRef.current = requestAnimationFrame(draw);
+        return;
+      }
+
+      const mx = mouseRef.current.x;
+      const my = mouseRef.current.y;
+
+      // Draw connections
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dx = nodes[i].x - nodes[j].x;
+          const dy = nodes[i].y - nodes[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > CONNECT_DIST) continue;
+
+          const dmi = Math.sqrt((nodes[i].x - mx) ** 2 + (nodes[i].y - my) ** 2);
+          const dmj = Math.sqrt((nodes[j].x - mx) ** 2 + (nodes[j].y - my) ** 2);
+          const proximity = Math.max(
+            Math.max(0, 1 - dmi / RADIUS),
+            Math.max(0, 1 - dmj / RADIUS)
+          );
+          if (proximity <= 0) continue;
+
+          const lineAlpha = (1 - dist / CONNECT_DIST) * proximity * 0.55;
+          const grad = ctx.createLinearGradient(nodes[i].x, nodes[i].y, nodes[j].x, nodes[j].y);
+          grad.addColorStop(0, nodes[i].color);
+          grad.addColorStop(1, nodes[j].color);
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = 0.9;
+          ctx.globalAlpha = lineAlpha;
+          ctx.stroke();
+        }
+      }
+
+      // Draw nodes
+      nodes.forEach(n => {
+        const dm = Math.sqrt((n.x - mx) ** 2 + (n.y - my) ** 2);
+        const proximity = Math.max(0, 1 - dm / RADIUS);
+        if (proximity <= 0) return;
+
+        const pulse = Math.sin(tick * 2.5 + n.phase);
+        const r = n.r + pulse * 0.6 + proximity * 3.5;
+
+        // Outer glow
+        const grd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 4);
+        grd.addColorStop(0, n.color + 'cc');
+        grd.addColorStop(1, n.color + '00');
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, r * 4, 0, Math.PI * 2);
+        ctx.fillStyle = grd;
+        ctx.globalAlpha = proximity * 0.4;
+        ctx.fill();
+
+        // Core
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = n.color;
+        ctx.globalAlpha = proximity * 0.95;
+        ctx.fill();
+      });
+
+      ctx.globalAlpha = 1;
+      animRef.current = requestAnimationFrame(draw);
+    };
+    draw();
+
+    const onMove = (e) => {
+      const rect = card.getBoundingClientRect();
+      mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top, inside: true };
+    };
+    const onLeave = () => { mouseRef.current = { x: -9999, y: -9999, inside: false }; };
+    card.addEventListener('mousemove', onMove);
+    card.addEventListener('mouseleave', onLeave);
+
+    return () => {
+      cancelAnimationFrame(animRef.current);
+      ro.disconnect();
+      card.removeEventListener('mousemove', onMove);
+      card.removeEventListener('mouseleave', onLeave);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={cardRef}
+      className={`glass-card ${className}`}
+      style={{ position: 'relative', overflow: 'hidden', borderRadius: '1rem', ...style }}
+    >
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: 'absolute', top: 0, left: 0,
+          width: '100%', height: '100%',
+          pointerEvents: 'none', zIndex: 1, borderRadius: 'inherit'
+        }}
+      />
+      <div style={{ position: 'relative', zIndex: 2 }}>{children}</div>
+    </div>
+  );
+};
 
 // Full-page mouse-reactive particle canvas
 const ParticleCanvas = () => {
@@ -127,6 +393,8 @@ const App = () => {
   const [scrolled, setScrolled] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [showFullJourney, setShowFullJourney] = useState(false);
+  const [showFullCerts, setShowFullCerts] = useState(false);
   const skillsRef = useRef(null);
 
   // Preloader target logic
@@ -214,23 +482,164 @@ const App = () => {
   };
 
   const handlePrint = () => {
-    const el = document.getElementById('resume');
-    if (!el) return;
     const newWin = window.open('', '_blank');
-    newWin.document.write(`
-      <html>
-        <head>
-          <title>Resume - Rahul Adhikari</title>
-          <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-        </head>
-        <body class="p-10 text-gray-900">
-          ${el.innerHTML}
-        </body>
-      </html>
-    `);
+    newWin.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Resume – Rahul Adhikari</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; background: #fff; padding: 40px 56px; font-size: 13px; line-height: 1.6; }
+    h1 { font-size: 28px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
+    .role { font-size: 13px; color: #475569; margin-top: 2px; margin-bottom: 14px; }
+    h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #06b6d4; border-bottom: 1.5px solid #e0f2fe; padding-bottom: 4px; margin: 22px 0 11px; }
+    .tag { display: inline-block; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; padding:1px 7px; font-size:11px; color:#475569; margin:2px 2px; }
+    .job { margin-bottom: 18px; }
+    .job-title { font-weight: 700; font-size: 14px; color: #0f172a; }
+    .job-company { color: #06b6d4; font-size: 12px; font-weight: 600; }
+    .job-period { color: #94a3b8; font-size: 11px; float: right; }
+    ul.points { margin: 6px 0 0 16px; }
+    ul.points li { margin-bottom: 4px; color: #334155; font-size: 12.5px; }
+    .summary { background: #f8fafc; border-left: 3px solid #06b6d4; padding: 10px 16px; border-radius: 4px; color: #334155; margin-bottom: 4px; }
+
+    /* Contact grid */
+    .contact-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px 12px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #e2e8f0; }
+    .ci { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: #334155; }
+    .ci a { color: #0369a1; text-decoration: none; }
+    /* Icon box — force print background */
+    .icon-box {
+      width: 20px; height: 20px;
+      background: #0f172a !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .icon-box svg { width: 12px; height: 12px; fill: white !important; stroke: none; }
+    @media print { body { padding: 20px 32px; } }
+  </style>
+</head>
+<body>
+  <h1>Rahul Adhikari</h1>
+  <div class="role">Data Analyst &amp; Power BI Specialist</div>
+
+  <div class="contact-grid">
+    <!-- Row 1: Phone | Website (center) | Location -->
+    <div class="ci">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12 19.79 19.79 0 0 1 1.1 3.45 2 2 0 0 1 3.08 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16z"/></svg>
+      +91-7737006542
+    </div>
+    <div class="ci">
+      <!-- Globe icon (stroke-based, always prints) -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+      <a href="https://www.rahuladhikari.com.np" target="_blank">www.rahuladhikari.com.np</a>
+    </div>
+    <div class="ci">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+      Bengaluru, Karnataka, India
+    </div>
+
+    <!-- Row 2: LinkedIn | Email (center) | empty -->
+    <div class="ci">
+      <!-- LinkedIn: stroke-based icon, no fill box needed -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
+      <a href="https://linkedin.com/in/irahuladhikari" target="_blank">linkedin.com/in/irahuladhikari</a>
+    </div>
+    <div class="ci">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      <a href="mailto:irahuladhikari@gmail.com">irahuladhikari@gmail.com</a>
+    </div>
+    <div class="ci"></div>
+  </div>
+
+
+
+  <h2>Professional Summary</h2>
+  <div class="summary">
+    Results-driven Data Analyst with 3+ years of experience transforming raw data into strategic insights through Power BI, SQL, Python, and advanced Excel automation. Proven track record of building scalable dashboards, end-to-end ETL pipelines, and AI-driven analytics solutions across finance, e-commerce, and research domains.
+    <br><br>
+    Adept at bridging technical complexity with business clarity — delivering data products that drive measurable growth, reduce operational friction, and empower stakeholder decision-making at scale.
+  </div>
+
+  <h2>Work Experience</h2>
+
+  <div class="job">
+    <div class="job-period">Apr 2025 – Present</div>
+    <div class="job-title">Data Analyst – Admin Executive</div>
+    <div class="job-company">Market Maven Research</div>
+    <ul class="points">
+      <li>Directed CRM operations for 100+ sales team members, improving efficiency and lead assignment accuracy.</li>
+      <li>Developed centralized Master Sheets to track clients, payments, complaints, and service upgrades.</li>
+      <li>Designed monthly performance dashboards and sales presentations for stakeholder decision-making.</li>
+    </ul>
+  </div>
+
+  <div class="job">
+    <div class="job-period">Aug 2024 – Feb 2025</div>
+    <div class="job-title">Market Research &amp; Data Analyst</div>
+    <div class="job-company">TRIO Clothing's</div>
+    <ul class="points">
+      <li>Conducted research on fashion trends across India and Nepal for product development strategy.</li>
+      <li>Recommended cost-effective raw material sourcing locations, optimizing procurement costs.</li>
+      <li>Analyzed competitors and seasonal trends to guide startup's market positioning.</li>
+    </ul>
+  </div>
+
+  <div class="job">
+    <div class="job-period">Apr 2022 – Aug 2024</div>
+    <div class="job-title">Power BI Developer &amp; Data Analyst</div>
+    <div class="job-company">Freelance Solutions</div>
+    <ul class="points">
+      <li>Engineered scalable data models and automated workflows using Power BI, SQL, and Python.</li>
+      <li>Created interactive dashboards for executives using Power BI, Tableau, and Google Data Studio.</li>
+      <li>Integrated multi-source data (BigQuery, IBM Cloud, APIs) reducing errors by 95%.</li>
+    </ul>
+  </div>
+
+  <h2>Internship &amp; Training</h2>
+
+  <div class="job">
+    <div class="job-period" style="color:#06b6d4">Jan 2022 – Apr 2022</div>
+    <div class="job-title">3 Months Internship – Data Analytics Program</div>
+    <div class="job-company">Labmentix</div>
+    <ul class="points">
+      <li>Completed hands-on Data Analytics &amp; AI internships focused on real-world projects using SQL, Excel, Power BI, Tableau, and Python, with mentorship-driven learning and practical reporting.</li>
+      <li>Built end-to-end dashboards and analytics solutions, applying Python (Pandas, Seaborn), SQL, MongoDB, Power Query, DAX, and VBA Macros on projects including land price prediction and X-ray image classification (CNN).</li>
+    </ul>
+  </div>
+
+  <div class="job">
+    <div class="job-period" style="color:#a78bfa">Feb 2021 – Jun 2021</div>
+    <div class="job-title">Data Science &amp; Machine Learning Training</div>
+    <div class="job-company">Excellence Technology, Mohali</div>
+    <ul class="points">
+      <li>Engineered Python-based ML projects using TensorFlow, OpenCV, and NumPy, building deployment-ready prototypes with real-world data pipelines and visualizations (Matplotlib) in collaborative team environments using Jupyter, PyCharm, and Anaconda.</li>
+    </ul>
+  </div>
+
+  <div class="job">
+    <div class="job-period" style="color:#22d3ee">Jun 2019 – Jul 2019</div>
+    <div class="job-title">Core Python Programming Training</div>
+    <div class="job-company">Nordia Ventures, Mohali</div>
+    <ul class="points">
+      <li>Mastered core Python concepts through coding challenges and mini projects, building strong foundations in functions, data structures, and automation for future data science applications.</li>
+    </ul>
+  </div>
+
+  <h2>Core Skills</h2>
+  <div style="margin-top:4px">
+    <span class="tag">Power BI</span><span class="tag">DAX</span><span class="tag">SQL</span><span class="tag">BigQuery</span>
+    <span class="tag">Python</span><span class="tag">Pandas</span><span class="tag">NumPy</span><span class="tag">Scikit-learn</span>
+    <span class="tag">Excel VBA</span><span class="tag">ETL</span><span class="tag">Tableau</span><span class="tag">LangChain</span>
+    <span class="tag">TensorFlow</span><span class="tag">OpenCV</span><span class="tag">MongoDB</span><span class="tag">Data Modeling</span>
+  </div>
+</body>
+</html>`);
     newWin.document.close();
     newWin.focus();
-    setTimeout(() => { newWin.print(); }, 500);
+    setTimeout(() => { newWin.print(); }, 600);
   };
 
   const projects = [
@@ -274,17 +683,17 @@ const App = () => {
       {isLoading && (
         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#0a0a1a] transition-all duration-700">
           <div className="absolute inset-0 pointer-events-none opacity-40 mix-blend-screen bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/40 via-[#0a0a1a] to-[#0a0a1a]"></div>
-          
+
           <div className="z-10 text-center flex flex-col items-center">
             <div className="mb-8">
               <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#06b6d4] to-[#ff1493] tracking-widest drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]">
                 {loadingProgress}%
               </h1>
             </div>
-            
+
             <div className="w-64 h-1.5 bg-slate-800 rounded-full overflow-hidden mb-8 shadow-inner">
-              <div 
-                className="h-full bg-gradient-to-r from-[#06b6d4] to-[#ff1493] shadow-[0_0_10px_rgba(255,20,147,0.8)] transition-all duration-75" 
+              <div
+                className="h-full bg-gradient-to-r from-[#06b6d4] to-[#ff1493] shadow-[0_0_10px_rgba(255,20,147,0.8)] transition-all duration-75"
                 style={{ width: `${loadingProgress}%` }}
               ></div>
             </div>
@@ -496,13 +905,17 @@ const App = () => {
           <div className="overflow-x-auto pb-4 -mx-6 px-6" style={{ scrollbarWidth: 'thin', scrollbarColor: '#06b6d4 transparent' }}>
             <div className="flex gap-6" style={{ width: 'max-content' }}>
               {projects.map((project, i) => (
-                <div key={i} className="group glass-card rounded-2xl overflow-hidden transition-all hover:pink-glow flex-shrink-0 shadow-md dark:shadow-none" style={{ width: '340px' }}>
+                <NodeGraphCard
+                  key={i}
+                  className="group flex-shrink-0 hover:shadow-[0_0_30px_rgba(6,182,212,0.25)] transition-shadow"
+                  style={{ width: '340px' }}
+                >
                   <div className="p-8 flex flex-col h-full">
                     <h3 className="text-2xl font-bold mb-3 text-slate-800 dark:text-slate-100 group-hover:text-[#06b6d4] transition-colors">{project.title}</h3>
-                    <p className="text-slate-800 dark:text-slate-400 text-sm leading-relaxed mb-6 flex-grow">{project.desc}</p>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6 flex-grow">{project.desc}</p>
                     <div className="flex flex-wrap gap-2 mb-8">
                       {project.tech.map(t => (
-                        <span key={t} className="px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-[10px] font-bold text-cyan-700 dark:text-[#06b6d4] border border-cyan-300 dark:border-cyan-700/50 transition-all duration-300 hover:bg-cyan-500 hover:text-white hover:shadow-[0_0_15px_#06b6d4] hover:scale-110 cursor-default">
+                        <span key={t} className="px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/40 text-[10px] font-bold text-cyan-700 dark:text-[#06b6d4] border border-cyan-300 dark:border-cyan-700/50 transition-all duration-300 hover:bg-cyan-500 hover:text-white hover:shadow-[0_0_12px_#06b6d4] hover:scale-110 cursor-default">
                           {t}
                         </span>
                       ))}
@@ -519,7 +932,7 @@ const App = () => {
                       </a>
                     </div>
                   </div>
-                </div>
+                </NodeGraphCard>
               ))}
             </div>
           </div>
@@ -615,7 +1028,7 @@ const App = () => {
                   'Integrated multi-source data (BigQuery, IBM Cloud, APIs) reducing errors by 95%.'
                 ]
               }
-            ].map((job, idx) => (
+            ].slice(0, showFullJourney ? undefined : 2).map((job, idx) => (
               <div key={idx} className="relative pl-8 md:pl-0">
                 <div className="md:grid md:grid-cols-5 md:gap-8 items-start relative">
                   <div className="hidden md:block col-span-1 text-right pt-1">
@@ -648,69 +1061,81 @@ const App = () => {
           </div>
 
           {/* Internship & Training */}
-          <div className="mt-12">
-            <div className="flex items-center gap-3 mb-10">
-              <div className="mono text-[#06b6d4] text-sm">// Internship &amp; Training</div>
-              <div className="h-px flex-1 bg-gradient-to-r from-[#06b6d4]/40 to-transparent" />
-            </div>
-            <div className="space-y-12">
-              {[
-                {
-                  title: '3 Months Internship – Data Analytics Program',
-                  company: 'Labmentix',
-                  period: 'Jan 2022 – Apr 2022',
-                  color: '#06b6d4',
-                  points: [
-                    'Completed hands-on Data Analytics & AI internships focused on real-world projects using SQL, Excel, Power BI, Tableau, and Python, with mentorship-driven learning and practical reporting.',
-                    'Built end-to-end dashboards and analytics solutions, applying Python (Pandas, Seaborn), SQL, MongoDB, Power Query, DAX, and VBA Macros on projects including land price prediction and X-ray image classification (CNN).'
-                  ]
-                },
-                {
-                  title: 'Data Science & Machine Learning Training',
-                  company: 'Excellence Technology, Mohali',
-                  period: 'Feb 2021 – Jun 2021',
-                  color: '#a78bfa',
-                  points: [
-                    'Engineered Python-based ML projects using TensorFlow, OpenCV, and NumPy, building deployment-ready prototypes with real-world data pipelines and visualizations (Matplotlib) in collaborative team environments using Jupyter, PyCharm, and Anaconda.'
-                  ]
-                },
-                {
-                  title: 'Core Python Programming Training',
-                  company: 'Nordia Ventures, Mohali',
-                  period: 'Jun 2019 – Jul 2019',
-                  color: '#22d3ee',
-                  points: [
-                    'Mastered core Python concepts through coding challenges and mini projects, building strong foundations in functions, data structures, and automation for future data science applications.'
-                  ]
-                }
-              ].map((item, idx) => (
-                <div key={idx} className="relative pl-8 md:pl-0">
-                  <div className="md:grid md:grid-cols-5 md:gap-8 items-start relative">
-                    <div className="hidden md:block col-span-1 text-right pt-1">
-                      <span className="text-sm font-bold mono" style={{ color: item.color }}>{item.period}</span>
-                    </div>
-                    <div className="col-span-4 relative pl-8 md:border-l border-slate-300 dark:border-slate-700">
-                      <div className="absolute left-0 top-0 bottom-[-3rem] w-px md:hidden" style={{ background: item.color + '60' }} />
-                      <div className="absolute left-[-5px] md:left-[-5px] top-2 w-2.5 h-2.5 rounded-full ring-4 ring-cyan-100 dark:ring-slate-900 z-10" style={{ background: item.color }} />
-                      <div className="mb-2 flex flex-col sm:flex-row sm:items-center justify-between md:hidden">
-                        <h3 className="text-xl font-bold">{item.title}</h3>
+          {showFullJourney && (
+            <div className="mt-12 fade-up">
+              <div className="flex items-center gap-3 mb-10">
+                <div className="mono text-[#06b6d4] text-sm">// Internship &amp; Training</div>
+                <div className="h-px flex-1 bg-gradient-to-r from-[#06b6d4]/40 to-transparent" />
+              </div>
+              <div className="space-y-12">
+                {[
+                  {
+                    title: '3 Months Internship – Data Analytics Program',
+                    company: 'Labmentix',
+                    period: 'Jan 2022 – Apr 2022',
+                    color: '#06b6d4',
+                    points: [
+                      'Completed hands-on Data Analytics & AI internships focused on real-world projects using SQL, Excel, Power BI, Tableau, and Python, with mentorship-driven learning and practical reporting.',
+                      'Built end-to-end dashboards and analytics solutions, applying Python (Pandas, Seaborn), SQL, MongoDB, Power Query, DAX, and VBA Macros on projects including land price prediction and X-ray image classification (CNN).'
+                    ]
+                  },
+                  {
+                    title: 'Data Science & Machine Learning Training',
+                    company: 'Excellence Technology, Mohali',
+                    period: 'Feb 2021 – Jun 2021',
+                    color: '#a78bfa',
+                    points: [
+                      'Engineered Python-based ML projects using TensorFlow, OpenCV, and NumPy, building deployment-ready prototypes with real-world data pipelines and visualizations (Matplotlib) in collaborative team environments using Jupyter, PyCharm, and Anaconda.'
+                    ]
+                  },
+                  {
+                    title: 'Core Python Programming Training',
+                    company: 'Nordia Ventures, Mohali',
+                    period: 'Jun 2019 – Jul 2019',
+                    color: '#22d3ee',
+                    points: [
+                      'Mastered core Python concepts through coding challenges and mini projects, building strong foundations in functions, data structures, and automation for future data science applications.'
+                    ]
+                  }
+                ].map((item, idx) => (
+                  <div key={idx} className="relative pl-8 md:pl-0">
+                    <div className="md:grid md:grid-cols-5 md:gap-8 items-start relative">
+                      <div className="hidden md:block col-span-1 text-right pt-1">
                         <span className="text-sm font-bold mono" style={{ color: item.color }}>{item.period}</span>
                       </div>
-                      <h3 className="hidden md:block text-xl font-bold mb-1">{item.title}</h3>
-                      <p className="inline-block px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-sm font-bold text-slate-500 mb-4 mono">{item.company}</p>
-                      <ul className="space-y-3">
-                        {item.points.map((p, i) => (
-                          <li key={i} className="text-slate-700 dark:text-slate-400 text-sm leading-relaxed flex gap-3">
-                            <span className="mt-1.5 w-1 h-1 rounded-full shrink-0" style={{ background: item.color }} />
-                            {p}
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="col-span-4 relative pl-8 md:border-l border-slate-300 dark:border-slate-700">
+                        <div className="absolute left-0 top-0 bottom-[-3rem] w-px md:hidden" style={{ background: item.color + '60' }} />
+                        <div className="absolute left-[-5px] md:left-[-5px] top-2 w-2.5 h-2.5 rounded-full ring-4 ring-cyan-100 dark:ring-slate-900 z-10" style={{ background: item.color }} />
+                        <div className="mb-2 flex flex-col sm:flex-row sm:items-center justify-between md:hidden">
+                          <h3 className="text-xl font-bold">{item.title}</h3>
+                          <span className="text-sm font-bold mono" style={{ color: item.color }}>{item.period}</span>
+                        </div>
+                        <h3 className="hidden md:block text-xl font-bold mb-1">{item.title}</h3>
+                        <p className="inline-block px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-sm font-bold text-slate-500 mb-4 mono">{item.company}</p>
+                        <ul className="space-y-3">
+                          {item.points.map((p, i) => (
+                            <li key={i} className="text-slate-700 dark:text-slate-400 text-sm leading-relaxed flex gap-3">
+                              <span className="mt-1.5 w-1 h-1 rounded-full shrink-0" style={{ background: item.color }} />
+                              {p}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
+          )}
+
+          <div className="mt-12 flex justify-center">
+            <button
+              onClick={() => setShowFullJourney(!showFullJourney)}
+              className="group flex items-center gap-2 px-6 py-3 rounded-full font-bold text-[#06b6d4] border border-[#06b6d4]/30 hover:border-[#ff1493]/50 hover:text-[#ff1493] transition-all bg-cyan-900/10 hover:bg-pink-900/10 dark:bg-cyan-900/20 dark:hover:bg-pink-900/20 shadow-sm"
+            >
+              {showFullJourney ? 'Show Less' : 'View Full Experience'}
+              <ArrowRight size={18} className={`transition-transform duration-300 ${showFullJourney ? '-rotate-90' : 'group-hover:translate-x-1'}`} />
+            </button>
           </div>
 
         </div>
@@ -831,34 +1256,45 @@ const App = () => {
               skills: ['Python', 'Data Structures', 'Web Scraping'],
               link: 'https://www.coursera.org/account/accomplishments/verify/CXEVVGTE2ERM'
             }
-          ].map((cert, idx) => (
-            <div key={idx} className="group glass-card rounded-2xl p-6 hover:border-[#ff1493]/50 transition-colors shadow-sm hover:shadow-[0_0_20px_rgba(255,20,147,0.15)] relative overflow-hidden flex flex-col justify-between">
-              <div className="absolute top-0 left-0 w-1.5 h-full bg-[#ff1493] opacity-0 group-hover:opacity-100 transition-opacity" />
-              <h3 className="text-lg font-bold mb-3 group-hover:text-[#ff1493] transition-colors pr-4">{cert.title}</h3>
-
-              <div className="flex flex-wrap gap-1.5 mb-6">
-                {cert.skills?.map((skill, sIdx) => (
-                  <span key={sIdx} className="text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200/50 bg-slate-50 dark:border-slate-700/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 group-hover:border-[#ff1493]/30 group-hover:bg-[#ff1493]/5 transition-colors">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-800/50">
-                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mono">{cert.issuer}</p>
-                <div className="flex items-center gap-2">
-                  {cert.link && (
-                    <a href={cert.link} target="_blank" rel="noreferrer" className="text-xs font-bold text-white bg-pink-gradient px-3 py-1.5 rounded-full hover:scale-105 transition-transform shadow-sm whitespace-nowrap">
-                      Verify ↗
-                    </a>
-                  )}
-                  <span className="text-xs font-bold text-[#ff1493] bg-pink-500/10 px-3 py-1.5 rounded-full whitespace-nowrap border border-pink-500/20 shadow-sm">
-                    {cert.period}
-                  </span>
+          ].slice(0, showFullCerts ? undefined : 4).map((cert, idx) => (
+            <EvervaultCard key={idx}>
+              <div className="group p-6 flex flex-col justify-between min-h-[200px]">
+                <div>
+                  <h3 className="text-lg font-bold mb-3 text-slate-800 dark:text-slate-100 group-hover:text-[#ff1493] transition-colors pr-4">{cert.title}</h3>
+                  <div className="flex flex-wrap gap-1.5 mb-6">
+                    {cert.skills?.map((skill, sIdx) => (
+                      <span key={sIdx} className="text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200/80 bg-slate-100 dark:border-slate-600/50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 group-hover:border-[#ff1493]/30 group-hover:text-[#ff1493]/80 transition-colors">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-auto pt-4 border-t border-slate-200/80 dark:border-slate-700/50">
+                  <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mono">{cert.issuer}</p>
+                  <div className="flex items-center gap-2">
+                    {cert.link && (
+                      <a href={cert.link} target="_blank" rel="noreferrer" className="text-xs font-bold text-white bg-pink-gradient px-3 py-1.5 rounded-full hover:scale-105 transition-transform shadow-sm whitespace-nowrap">
+                        Verify ↗
+                      </a>
+                    )}
+                    <span className="text-xs font-bold text-[#ff1493] bg-pink-500/10 px-3 py-1.5 rounded-full whitespace-nowrap border border-pink-500/20 shadow-sm">
+                      {cert.period}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            </EvervaultCard>
           ))}
+        </div>
+
+        <div className="mt-12 flex justify-center">
+          <button
+            onClick={() => setShowFullCerts(!showFullCerts)}
+            className="group flex items-center gap-2 px-6 py-3 rounded-full font-bold text-[#06b6d4] border border-[#06b6d4]/30 hover:border-[#ff1493]/50 hover:text-[#ff1493] transition-all bg-cyan-900/10 hover:bg-pink-900/10 dark:bg-cyan-900/20 dark:hover:bg-pink-900/20 shadow-sm"
+          >
+            {showFullCerts ? 'Show Less' : 'View Full Certifications'}
+            <ArrowRight size={18} className={`transition-transform duration-300 ${showFullCerts ? '-rotate-90' : 'group-hover:translate-x-1'}`} />
+          </button>
         </div>
       </section>
 
