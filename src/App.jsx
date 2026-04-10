@@ -25,6 +25,118 @@ const TYPEWRITER_PHRASES = [
   "BI Analyst / Data Analyst."
 ];
 
+// Binary Matrix Card — columns of 0/1 that glow near mouse pointer
+const HexGridCard = ({ children, className = '', style = {}, isDark = true }) => {
+  const cardRef = useRef(null);
+  const canvasRef = useRef(null);
+  const animRef = useRef(null);
+  const mouseRef = useRef({ x: -9999, y: -9999, inside: false });
+
+  // Use a ref for isDark to avoid re-running useEffect just for the trail color
+  const isDarkRef = useRef(isDark);
+  useEffect(() => {
+    isDarkRef.current = isDark;
+  }, [isDark]);
+
+  useEffect(() => {
+    const card = cardRef.current;
+    const canvas = canvasRef.current;
+    if (!card || !canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const FONT_SIZE = 14;
+    const RADIUS = 120;
+    const COLORS = ['#06b6d4', '#ff1493', '#a78bfa', '#22d3ee', '#4ade80'];
+
+    let cols = [], drops = [];
+
+    const build = () => {
+      canvas.width  = card.offsetWidth;
+      canvas.height = card.offsetHeight;
+      const numCols = Math.floor(canvas.width / FONT_SIZE);
+      cols = Array.from({ length: numCols }, (_, i) => ({
+        x: i * FONT_SIZE + FONT_SIZE / 2,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        speed: Math.random() * 0.6 + 0.3,
+      }));
+      drops = cols.map(() => Math.random() * -canvas.height);
+    };
+    build();
+
+    const ro = new ResizeObserver(build);
+    ro.observe(card);
+
+    const draw = () => {
+      // Gentle fade trail — match theme background (Slate 800 for dark, White for light)
+      ctx.fillStyle = isDarkRef.current ? 'rgba(30, 41, 59, 0.08)' : 'rgba(255, 255, 255, 0.08)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const mx = mouseRef.current.x;
+      const my = mouseRef.current.y;
+      const inside = mouseRef.current.inside;
+
+      ctx.font = `bold ${FONT_SIZE}px monospace`;
+
+      cols.forEach((col, i) => {
+        const y = drops[i] % (canvas.height + FONT_SIZE);
+        const dist = inside ? Math.sqrt((col.x - mx) ** 2 + (y - my) ** 2) : Infinity;
+        const proximity = inside ? Math.max(0, 1 - dist / RADIUS) : 0;
+
+        // Ambient column — very dim, always scrolling
+        const ambientAlpha = 0.06 + Math.random() * 0.04;
+
+        // Mouse-lit cell
+        const cellAlpha = ambientAlpha + proximity * 0.9;
+
+        ctx.globalAlpha = cellAlpha;
+        ctx.fillStyle = col.color;
+        ctx.fillText(Math.random() > 0.5 ? '1' : '0', col.x - FONT_SIZE / 2, y);
+
+        ctx.globalAlpha = 1;
+        drops[i] += col.speed * (1 + proximity * 3);
+
+        // Reset when off bottom
+        if (drops[i] > canvas.height + FONT_SIZE) {
+          drops[i] = -FONT_SIZE;
+          col.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        }
+      });
+
+      animRef.current = requestAnimationFrame(draw);
+    };
+    draw();
+
+    const onMove = (e) => {
+      const rect = card.getBoundingClientRect();
+      mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top, inside: true };
+    };
+    const onLeave = () => { mouseRef.current = { x: -9999, y: -9999, inside: false }; };
+    card.addEventListener('mousemove', onMove);
+    card.addEventListener('mouseleave', onLeave);
+
+    return () => {
+      cancelAnimationFrame(animRef.current);
+      ro.disconnect();
+      card.removeEventListener('mousemove', onMove);
+      card.removeEventListener('mouseleave', onLeave);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={cardRef}
+      className={`${isDark ? 'glass-card' : 'bg-transparent'} ${className}`}
+      style={{ position: 'relative', overflow: 'hidden', borderRadius: '1rem', ...style }}
+    >
+      <canvas
+        ref={canvasRef}
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1, borderRadius: 'inherit' }}
+      />
+      <div style={{ position: 'relative', zIndex: 2 }}>{children}</div>
+    </div>
+  );
+};
+
 // Evervault-style Matrix Spotlight Card
 const EvervaultCard = ({ children, className = '' }) => {
   const cardRef = useRef(null);
@@ -387,7 +499,7 @@ const ParticleCanvas = () => {
 };
 
 const App = () => {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(true);
   const [projectModal, setProjectModal] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [skillsVisible, setSkillsVisible] = useState(false);
@@ -397,6 +509,7 @@ const App = () => {
   const [showFullJourney, setShowFullJourney] = useState(false);
   const [showFullCerts, setShowFullCerts] = useState(false);
   const [cookieConsent, setCookieConsent] = useState(null);
+  const [activeAiTab, setActiveAiTab] = useState(0);
   const skillsRef = useRef(null);
 
   // Cookie Logic
@@ -465,11 +578,6 @@ const App = () => {
   }, [typewriterText, isDeleting, loopNum, typingSpeed]);
 
   // Theme logic
-  useEffect(() => {
-    const saved = localStorage.getItem("theme-dark");
-    if (saved) setDark(JSON.parse(saved));
-  }, []);
-
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
     localStorage.setItem("theme-dark", JSON.stringify(dark));
@@ -659,12 +767,45 @@ const App = () => {
     </ul>
   </div>
 
+  <h2>Featured Projects</h2>
+  <div class="job">
+    <div class="job-title">RAG-Powered Agentic AI Assistant</div>
+    <div style="font-size: 11px; color: #475569; margin-bottom: 2px;">LangChain, RAG, OpenAI, FAISS, Python, Agentic AI</div>
+    <div style="font-size: 12px; color: #334155;">Built an end-to-end Retrieval-Augmented Generation (RAG) pipeline with autonomous multi-step reasoning for business data Q&A.</div>
+  </div>
+  <div class="job">
+    <div class="job-title">Esports Performance Analysis (PMGC 2023)</div>
+    <div style="font-size: 11px; color: #475569; margin-bottom: 2px;">Power BI, SQL, Data Cleaning</div>
+    <div style="font-size: 12px; color: #334155;">In-depth analysis and visualization of PMGC tournament data to track team/player performance metrics.</div>
+  </div>
+  <div class="job">
+    <div class="job-title">Financial KPI Dashboard</div>
+    <div style="font-size: 11px; color: #475569; margin-bottom: 2px;">Excel VBA, Power BI, DAX</div>
+    <div style="font-size: 12px; color: #334155;">Automated financial reporting tool for real-time KPI tracking and automated data consolidation.</div>
+  </div>
+
   <h2>Core Skills</h2>
   <div style="margin-top:4px">
     <span class="tag">Power BI</span><span class="tag">DAX</span><span class="tag">SQL</span><span class="tag">BigQuery</span>
     <span class="tag">Python</span><span class="tag">Pandas</span><span class="tag">NumPy</span><span class="tag">Scikit-learn</span>
     <span class="tag">Excel VBA</span><span class="tag">ETL</span><span class="tag">Tableau</span><span class="tag">LangChain</span>
     <span class="tag">TensorFlow</span><span class="tag">OpenCV</span><span class="tag">MongoDB</span><span class="tag">Data Modeling</span>
+  </div>
+
+  <h2>Generative AI &amp; Automation Tools</h2>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px;">
+    <div>
+      <div style="font-weight:700; font-size:12px; color:#475569; margin-bottom:4px;">Workflow Automation:</div>
+      <span class="tag">n8n</span><span class="tag">Microsoft Power Automate</span>
+    </div>
+    <div>
+      <div style="font-weight:700; font-size:12px; color:#475569; margin-bottom:4px;">AI Assistants &amp; LLMs:</div>
+      <span class="tag">Google AI Studio</span><span class="tag">Google Antigravity</span><span class="tag">Claude</span>
+    </div>
+    <div style="grid-column: span 2;">
+      <div style="font-weight:700; font-size:12px; color:#475569; margin-bottom:4px;">Productivity &amp; Design:</div>
+      <span class="tag">Notion</span><span class="tag">Canva</span><span class="tag">Adobe Photoshop</span><span class="tag">Adobe Firefly</span>
+    </div>
   </div>
 </body>
 </html>`);
@@ -1208,7 +1349,146 @@ const App = () => {
         </div>
       </section>
 
+      {/* Generative AI & Automation Tools */}
+      <section id="ai-tools" className="py-24 px-6 max-w-7xl mx-auto">
+        <div className="text-center mb-12">
+          <div className="mono text-[#ff1493] text-sm mb-2">// Modern Workflow</div>
+          <h2 className="text-4xl md:text-5xl font-black mb-4">Generative AI &amp; Automation Tools</h2>
+          <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto text-base">
+            Leveraging cutting-edge AI platforms and no-code automation tools to build smarter, faster workflows.
+          </p>
+        </div>
+
+        {(() => {
+          const aiCategories = [
+            {
+              label: 'Workflow Automation',
+              color: '#06b6d4',
+              bgLight: 'bg-cyan-50',
+              bgDark: 'dark:bg-cyan-900/20',
+              badgeBg: 'bg-cyan-100 dark:bg-cyan-900/40',
+              badgeBorder: 'border-cyan-300 dark:border-cyan-700/50',
+              dotShadow: '0_0_6px_#06b6d4',
+              borderActive: 'border-[#06b6d4]',
+              icon: (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              ),
+              tools: [
+                { name: 'n8n', desc: 'Self-hosted workflow automation & API orchestration', badge: 'Open Source' },
+                { name: 'Microsoft Power Automate', desc: 'Enterprise process automation across the Microsoft 365 ecosystem', badge: 'Enterprise' },
+              ]
+            },
+            {
+              label: 'AI Assistants & LLMs',
+              color: '#ff1493',
+              bgLight: 'bg-pink-50',
+              bgDark: 'dark:bg-pink-900/10',
+              badgeBg: 'bg-pink-100 dark:bg-pink-900/40',
+              badgeBorder: 'border-pink-300 dark:border-pink-700/50',
+              dotShadow: '0_0_6px_#ff1493',
+              borderActive: 'border-[#ff1493]',
+              icon: <BrainCircuit className="w-4 h-4" />,
+              tools: [
+                { name: 'Google AI Studio', desc: 'Prototyping with Gemini models for data & content tasks', badge: 'Gemini' },
+                { name: 'Google Antigravity', desc: 'AI-powered agentic coding & rapid development assistant', badge: 'Agentic' },
+                { name: 'Claude (Anthropic)', desc: 'Advanced reasoning, document analysis & code generation', badge: 'LLM' },
+              ]
+            },
+            {
+              label: 'Productivity & Design',
+              color: '#a78bfa',
+              bgLight: 'bg-violet-50',
+              bgDark: 'dark:bg-violet-900/10',
+              badgeBg: 'bg-violet-100 dark:bg-violet-900/40',
+              badgeBorder: 'border-violet-300 dark:border-violet-700/50',
+              dotShadow: '0_0_6px_#a78bfa',
+              borderActive: 'border-[#a78bfa]',
+              icon: (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              ),
+              tools: [
+                { name: 'Notion', desc: 'AI-powered knowledge management, project tracking & docs', badge: 'PKM' },
+                { name: 'Canva', desc: 'AI-assisted design for dashboards, reports & presentations', badge: 'Design' },
+                { name: 'Adobe Photoshop', desc: 'Professional image editing & visual asset creation', badge: 'Adobe' },
+                { name: 'Adobe Firefly', desc: 'Generative AI image creation & creative content automation', badge: 'GenAI' },
+              ]
+            },
+          ];
+
+          const active = aiCategories[activeAiTab];
+
+          return (
+            <div className="max-w-3xl mx-auto">
+              {/* Tab Buttons */}
+              <div className="flex flex-wrap justify-center gap-3 mb-8">
+                {aiCategories.map((cat, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveAiTab(i)}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-300 border ${
+                      activeAiTab === i
+                        ? 'text-white shadow-lg scale-105'
+                        : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500'
+                    }`}
+                    style={activeAiTab === i ? {
+                      background: `linear-gradient(135deg, ${cat.color}cc, ${cat.color})`,
+                      borderColor: cat.color,
+                      boxShadow: `0 0 20px ${cat.color}55`
+                    } : {}}
+                  >
+                    <span style={activeAiTab === i ? { color: 'white' } : { color: cat.color }}>{cat.icon}</span>
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Active Tab Content */}
+              <HexGridCard
+                isDark={dark}
+                key={activeAiTab}
+                className="rounded-2xl border transition-all duration-300"
+                style={{ borderColor: `${active.color}40` }}
+              >
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2.5 rounded-lg" style={{ background: `${active.color}20`, border: `1px solid ${active.color}40` }}>
+                      <span style={{ color: active.color }}>{active.icon}</span>
+                    </div>
+                    <h3 className="text-xl font-bold" style={{ color: active.color }}>{active.label}</h3>
+                    <span className="ml-auto text-xs font-bold text-slate-400 mono">{active.tools.length} tools</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {active.tools.map((tool, i) => (
+                      <div
+                        key={i}
+                        className={`flex items-start gap-3 p-4 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 ${active.bgLight} ${active.bgDark} transition-colors`}
+                      >
+                        <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: active.color, boxShadow: `0 0 6px ${active.color}` }} />
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="font-bold text-sm text-slate-800 dark:text-slate-100">{tool.name}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${active.badgeBg} border ${active.badgeBorder}`} style={{ color: active.color }}>{tool.badge}</span>
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{tool.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </HexGridCard>
+            </div>
+          );
+        })()}
+      </section>
+
+
       {/* Certifications & Achievements */}
+
       <section id="certifications" className="py-24 px-6 max-w-7xl mx-auto">
         <div className="text-center mb-16 max-w-3xl mx-auto">
           <div className="mono text-[#ff1493] text-sm mb-2">// Continuous Learning</div>
