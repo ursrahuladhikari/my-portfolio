@@ -482,7 +482,13 @@ const App = () => {
   };
 
   const handlePrint = () => {
-    window.open('/resume.html', '_blank');
+    const link = document.createElement('a');
+    link.href = '/Rahul_Adhikari_Resume.pdf';
+    link.download = 'Rahul_Adhikari_Resume.pdf';
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const projects = [
