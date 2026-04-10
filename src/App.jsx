@@ -482,8 +482,17 @@ const App = () => {
   };
 
   const handlePrint = () => {
-    const newWin = window.open('', '_blank');
-    newWin.document.write(`<!DOCTYPE html>
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow ? iframe.contentWindow.document : iframe.contentDocument;
+    doc.write(`<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -637,9 +646,12 @@ const App = () => {
   </div>
 </body>
 </html>`);
-    newWin.document.close();
-    newWin.focus();
-    setTimeout(() => { newWin.print(); }, 600);
+    doc.close();
+    iframe.contentWindow.focus();
+    setTimeout(() => { 
+      iframe.contentWindow.print(); 
+      setTimeout(() => document.body.removeChild(iframe), 1000);
+    }, 600);
   };
 
   const projects = [
