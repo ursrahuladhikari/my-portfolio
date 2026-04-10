@@ -15,7 +15,8 @@ import {
   Terminal,
   MessageCircle,
   ChevronRight,
-  ArrowRight
+  ArrowRight,
+  Shield
 } from "lucide-react";
 
 const TYPEWRITER_PHRASES = [
@@ -395,7 +396,28 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showFullJourney, setShowFullJourney] = useState(false);
   const [showFullCerts, setShowFullCerts] = useState(false);
+  const [cookieConsent, setCookieConsent] = useState(null);
   const skillsRef = useRef(null);
+
+  // Cookie Logic
+  useEffect(() => {
+    const savedConsent = localStorage.getItem("cookie-consent");
+    if (savedConsent) {
+      setCookieConsent(savedConsent);
+    } else {
+      setTimeout(() => setCookieConsent('pending'), 2000);
+    }
+  }, []);
+
+  const acceptCookies = () => {
+    localStorage.setItem("cookie-consent", "accepted");
+    setCookieConsent("accepted");
+  };
+
+  const rejectCookies = () => {
+    localStorage.setItem("cookie-consent", "rejected");
+    setCookieConsent("rejected");
+  };
 
   // Preloader target logic
   useEffect(() => {
@@ -1355,6 +1377,36 @@ const App = () => {
           </div>
         </div>
       </footer>
+
+      {/* Cookie Consent Banner */}
+      <div className={`fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[100] transition-all duration-700 ease-out w-[calc(100%-2rem)] max-w-sm ${cookieConsent === 'pending' ? 'translate-y-0 opacity-100' : 'translate-y-16 opacity-0 pointer-events-none'}`}>
+        <div className="glass-card bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 p-4 rounded-xl shadow-2xl flex flex-col relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-1 h-full bg-pink-gradient" />
+          <div className="pl-3 mb-4">
+            <h4 className="text-base font-bold mb-1.5 flex items-center gap-2 text-slate-800 dark:text-slate-100">
+              <Shield size={16} className="text-[#06b6d4]" />
+              Privacy Preferences
+            </h4>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed text-left">
+              This site uses local storage to ensure you get the best browsing experience, such as remembering your viewing theme.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 pl-3">
+            <button 
+              onClick={rejectCookies}
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              Decline
+            </button>
+            <button 
+              onClick={acceptCookies}
+              className="flex-1 px-3 py-2 rounded-lg bg-pink-gradient text-white text-xs font-bold pink-glow hover:scale-105 transition-transform shadow-md"
+            >
+              Accept
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
