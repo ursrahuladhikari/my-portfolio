@@ -67,22 +67,28 @@ const HexGridCard = ({ children, className = '', style = {}, isDark = true }) =>
     ro.observe(card);
 
     const draw = () => {
-      // Gentle fade trail — match theme background (Slate 800 for dark, White for light)
-      ctx.fillStyle = isDarkRef.current ? 'rgba(30, 41, 59, 0.08)' : 'rgba(255, 255, 255, 0.08)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
       const mx = mouseRef.current.x;
       const my = mouseRef.current.y;
       const inside = mouseRef.current.inside;
+
+      if (!inside) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        animRef.current = requestAnimationFrame(draw);
+        return;
+      }
+
+      // Gentle fade trail — match theme background (Slate 800 for dark, White for light)
+      ctx.fillStyle = isDarkRef.current ? 'rgba(30, 41, 59, 0.08)' : 'rgba(255, 255, 255, 0.08)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.font = `bold ${FONT_SIZE}px monospace`;
 
       cols.forEach((col, i) => {
         const y = drops[i] % (canvas.height + FONT_SIZE);
-        const dist = inside ? Math.sqrt((col.x - mx) ** 2 + (y - my) ** 2) : Infinity;
-        const proximity = inside ? Math.max(0, 1 - dist / RADIUS) : 0;
+        const dist = Math.sqrt((col.x - mx) ** 2 + (y - my) ** 2);
+        const proximity = Math.max(0, 1 - dist / RADIUS);
 
-        // Ambient column — very dim, always scrolling
+        // Ambient column — very dim
         const ambientAlpha = 0.06 + Math.random() * 0.04;
 
         // Mouse-lit cell
