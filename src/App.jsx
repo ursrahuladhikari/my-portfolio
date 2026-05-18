@@ -14,10 +14,15 @@ import {
   BrainCircuit,
   Terminal,
   MessageCircle,
+  ChevronLeft,
   ChevronRight,
   ArrowRight,
-  Shield
+  Shield,
+  Layers,
+  BarChart3,
+  Workflow
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const TYPEWRITER_PHRASES = [
   "Elevating Decisions via Data.",
@@ -139,6 +144,264 @@ const HexGridCard = ({ children, className = '', style = {}, isDark = true }) =>
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1, borderRadius: 'inherit' }}
       />
       <div style={{ position: 'relative', zIndex: 2 }}>{children}</div>
+    </div>
+  );
+};
+
+const TechnologyLogo = ({ src, name, color, className = "w-12 h-12 p-2" }) => {
+  const [error, setError] = React.useState(false);
+  
+  if (!src || error) {
+    return (
+      <div className={`${className} shrink-0 rounded-xl flex items-center justify-center font-bold text-xl shadow-inner`} style={{ background: `${color}20`, color: color, border: `1px solid ${color}40` }}>
+        {name.charAt(0)}
+      </div>
+    );
+  }
+  
+  return (
+    <div className={`${className} shrink-0 flex items-center justify-center bg-white rounded-xl shadow-sm border border-slate-200 dark:border-slate-700/50`}>
+      <img src={src} alt={name} className="w-full h-full object-contain drop-shadow-sm" onError={() => setError(true)} />
+    </div>
+  );
+};
+
+const TechnologyCard = ({ tool, activeColor, dark }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [logoError, setLogoError] = React.useState(false);
+
+  // Close on Escape key
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e) => { if (e.key === 'Escape') setIsOpen(false); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isOpen]);
+
+  const hasLogo = !!tool.logo && !logoError;
+  const logoSrc = hasLogo ? `${tool.logo}${tool.logo.includes('?') ? '&' : '?'}v=2` : '';
+
+  return (
+    <>
+      {/* Layer 1: Compact horizontal card matching user screenshot exactly */}
+      <motion.div
+        onClick={() => setIsOpen(true)}
+        className="relative rounded-2xl border p-4 flex items-center gap-4 cursor-pointer backdrop-blur-md overflow-hidden transition-all duration-300"
+        style={{
+          background: dark ? 'rgba(13, 20, 45, 0.45)' : 'rgba(240, 244, 255, 0.6)',
+          borderColor: dark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.08)',
+        }}
+        whileHover={{
+          scale: 1.03,
+          borderColor: `${activeColor}70`,
+          boxShadow: `0 10px 25px -8px ${activeColor}40`,
+        }}
+      >
+        {/* Subtle glow behind card on hover */}
+        <div className="absolute inset-0 opacity-0 hover:opacity-10 transition-opacity duration-300 pointer-events-none"
+          style={{ background: `radial-gradient(circle at 10% 50%, ${activeColor}30, transparent 60%)` }}
+        />
+
+        {/* Icon wrapper */}
+        <div className="w-12 h-12 flex items-center justify-center rounded-xl border shrink-0 relative overflow-hidden"
+          style={{
+            background: hasLogo ? 'rgba(255,255,255,0.96)' : dark ? 'rgba(15,23,42,0.7)' : 'rgba(241,245,249,0.9)',
+            borderColor: `${activeColor}40`,
+            boxShadow: hasLogo ? `0 0 16px ${activeColor}22` : `inset 0 0 10px ${activeColor}15`,
+          }}
+        >
+          {hasLogo ? (
+            <img src={logoSrc} alt={tool.name} className="w-8 h-8 object-contain drop-shadow-sm" onError={() => setLogoError(true)} />
+          ) : (
+            <span className="font-extrabold text-lg tracking-wider" style={{ color: activeColor, textShadow: `0 0 8px ${activeColor}60` }}>
+              {tool.name.charAt(0)}
+            </span>
+          )}
+        </div>
+
+        {/* Title and Badge */}
+        <div className="flex-1 min-w-0">
+          <h4 className="font-extrabold text-base text-slate-900 dark:text-slate-100 truncate leading-tight tracking-wide">
+            {tool.name}
+          </h4>
+          <span
+            className="text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-widest border inline-block mt-1.5"
+            style={{ backgroundColor: `${activeColor}10`, color: activeColor, borderColor: `${activeColor}30` }}
+          >
+            {tool.badge}
+          </span>
+        </div>
+      </motion.div>
+
+      {/* Layer 3: Full floating glass panel modal */}
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-8">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-slate-950/70 backdrop-blur-md"
+              onClick={() => setIsOpen(false)}
+            />
+            {/* Panel */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 190 }}
+              className="relative glass-card w-full max-w-lg rounded-3xl p-6 sm:p-8 overflow-hidden shadow-2xl border"
+              style={{
+                background: dark ? 'rgba(10, 15, 35, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                borderColor: `${activeColor}40`,
+                boxShadow: `0 30px 70px -10px ${activeColor}40`,
+              }}
+            >
+              {/* Colored top gradient border */}
+              <div className="absolute top-0 left-0 right-0 h-1" style={{ background: `linear-gradient(90deg, transparent, ${activeColor}, transparent)` }} />
+
+              {/* Close button */}
+              <button
+                onClick={() => setIsOpen(false)}
+                className="absolute top-6 right-6 p-2 rounded-full border transition-all hover:scale-110"
+                style={{ borderColor: `${activeColor}20`, color: dark ? '#94a3b8' : '#475569' }}
+              >
+                <X size={16} />
+              </button>
+
+              {/* Header */}
+              <div className="flex items-center gap-4 mb-6 mt-2">
+                <div className="w-14 h-14 flex items-center justify-center rounded-2xl border shrink-0"
+                  style={{
+                    background: hasLogo ? 'rgba(255,255,255,0.96)' : dark ? 'rgba(15,23,42,0.7)' : 'rgba(241,245,249,0.9)',
+                    borderColor: `${activeColor}40`,
+                    boxShadow: `0 0 15px ${activeColor}30`,
+                  }}
+                >
+                  {hasLogo ? (
+                    <img src={logoSrc} alt={tool.name} className="w-9 h-9 object-contain" onError={() => setLogoError(true)} />
+                  ) : (
+                    <span className="font-extrabold text-2xl" style={{ color: activeColor }}>
+                      {tool.name.charAt(0)}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 leading-tight">{tool.name}</h3>
+                  <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider border inline-block mt-1"
+                    style={{ backgroundColor: `${activeColor}15`, color: activeColor, borderColor: `${activeColor}30` }}
+                  >
+                    {tool.badge}
+                  </span>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="space-y-5 text-sm">
+                <div>
+                  <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1 mono">// Overview</h5>
+                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{tool.description}</p>
+                </div>
+
+                {tool.useCases && (
+                  <div>
+                    <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2 mono">// Key Capabilities</h5>
+                    <div className="flex flex-wrap gap-2">
+                      {tool.useCases.map((uc, idx) => (
+                        <span key={idx} className="px-3 py-1 rounded-full text-xs font-bold border"
+                          style={{ borderColor: `${activeColor}25`, color: activeColor, backgroundColor: `${activeColor}08` }}
+                        >
+                          {uc}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {tool.bestFor && (
+                  <div className="p-4 rounded-2xl border"
+                    style={{ borderColor: `${activeColor}20`, background: `${activeColor}05` }}
+                  >
+                    <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1 mono">// Why it matters</h5>
+                    <p className="text-slate-700 dark:text-slate-300 font-bold leading-relaxed">{tool.bestFor}</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+};
+
+const ProjectSlideshow = ({ images, title }) => {
+  const [currentImage, setCurrentImage] = useState(0);
+
+  useEffect(() => {
+    setCurrentImage(0);
+  }, [images]);
+
+  if (!images?.length) return null;
+
+  const activeImage = images[currentImage];
+  const goToPrevious = () => {
+    setCurrentImage((index) => (index === 0 ? images.length - 1 : index - 1));
+  };
+  const goToNext = () => {
+    setCurrentImage((index) => (index === images.length - 1 ? 0 : index + 1));
+  };
+
+  return (
+    <div className="mb-8">
+      <div className="relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700/70 bg-slate-100 dark:bg-slate-950/60 shadow-inner">
+        <img
+          src={activeImage.src}
+          alt={`${title} - ${activeImage.label}`}
+          className="w-full aspect-[16/7] object-cover object-left-top"
+        />
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={goToPrevious}
+              className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-slate-950/65 text-white hover:bg-[#06b6d4] transition-colors backdrop-blur-sm"
+              aria-label="Previous screenshot"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              onClick={goToNext}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-slate-950/65 text-white hover:bg-[#06b6d4] transition-colors backdrop-blur-sm"
+              aria-label="Next screenshot"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </>
+        )}
+      </div>
+      <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mono">
+          {activeImage.label}
+        </p>
+        {images.length > 1 && (
+          <div className="flex flex-wrap gap-2">
+            {images.map((image, index) => (
+              <button
+                key={image.src}
+                onClick={() => setCurrentImage(index)}
+                className={`h-2.5 rounded-full transition-all ${
+                  currentImage === index
+                    ? 'w-8 bg-[#ff1493] pink-glow'
+                    : 'w-2.5 bg-slate-300 dark:bg-slate-700 hover:bg-[#06b6d4]'
+                }`}
+                aria-label={`Show ${image.label}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -504,6 +767,386 @@ const ParticleCanvas = () => {
   );
 };
 
+// ── AiEcosystem: Futuristic orbital node map — all interactions inside canvas ──
+const NODE_POSITIONS = [
+  { angle: -90  }, // 0 AI Assistants
+  { angle: -30  }, // 1 Data Gen
+  { angle:  30  }, // 2 Data Prep
+  { angle:  90  }, // 3 Analytics
+  { angle: 150  }, // 4 Frameworks
+  { angle: 210  }, // 5 Workflow
+];
+const deg2rad = (d) => (d * Math.PI) / 180;
+
+const AiEcosystem = ({ categories, dark }) => {
+  const frameRef = useRef(null);
+  const [hovered, setHovered] = React.useState(null);
+  const [openIdx, setOpenIdx] = React.useState(null);
+  const [activeIdx, setActiveIdx] = React.useState(0);
+  const [frameWidth, setFrameWidth] = React.useState(0);
+
+  // Escape to close
+  React.useEffect(() => {
+    if (openIdx === null) return;
+    const h = (e) => { if (e.key === 'Escape') setOpenIdx(null); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [openIdx]);
+
+  React.useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const updateWidth = () => setFrameWidth(frame.offsetWidth);
+    updateWidth();
+    const ro = new ResizeObserver(updateWidth);
+    ro.observe(frame);
+    return () => ro.disconnect();
+  }, []);
+
+  const openCat = openIdx !== null ? categories[openIdx] : null;
+  const isExpanded = openIdx !== null;
+  const activeTab = openIdx !== null ? openIdx : activeIdx;
+  const isCompact = frameWidth > 0 && frameWidth < 640;
+  const NODE_SIZE = isCompact ? 64 : 72;
+  const OPEN_NODE_SIZE = isCompact ? 70 : 80;
+  const CORE_SIZE = isCompact ? 104 : 120;
+  const CORE_RING_SIZE = CORE_SIZE + 32;
+  const NODE_LINE_R = NODE_SIZE / 2;
+  const CORE_LINE_R = CORE_RING_SIZE / 2;
+  const ORBIT_R = isCompact
+    ? Math.max(118, Math.min(150, (frameWidth - NODE_SIZE - 24) / 2))
+    : 210;
+  const ORBIT_Y_OFFSET = isCompact ? -8 : -29;
+  const FRAME_MIN_HEIGHT = isCompact ? 560 : 640;
+
+  return (
+    <div
+      ref={frameRef}
+      className="relative w-full rounded-3xl overflow-hidden"
+      style={{
+        background: dark
+          ? 'radial-gradient(ellipse at 50% 40%, #0d1b3e 0%, #060a18 60%, #000000 100%)'
+          : 'radial-gradient(ellipse at 50% 40%, #e8f0fe 0%, #dbe8fd 60%, #c7d7fc 100%)',
+        minHeight: FRAME_MIN_HEIGHT,
+        border: `1px solid ${dark ? 'rgba(255,100,0,0.15)' : 'rgba(99,102,241,0.2)'}`,
+        boxShadow: dark
+          ? '0 0 80px rgba(255,80,0,0.08), inset 0 0 80px rgba(0,0,60,0.5)'
+          : '0 20px 60px rgba(99,102,241,0.12)',
+      }}
+    >
+      {/* ── Scanline grid ── */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        backgroundImage: dark
+          ? 'linear-gradient(rgba(255,100,0,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,100,0,0.03) 1px,transparent 1px)'
+          : 'linear-gradient(rgba(99,102,241,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,0.04) 1px,transparent 1px)',
+        backgroundSize: '40px 40px',
+      }} />
+
+      {/* ── Floating particles ── */}
+      {[...Array(14)].map((_, i) => (
+        <motion.div key={i} className="absolute rounded-full pointer-events-none"
+          style={{
+            width: 2 + (i % 3), height: 2 + (i % 3),
+            left: `${8 + (i * 6) % 84}%`, top: `${8 + (i * 9) % 84}%`,
+            backgroundColor: ['#ff6600','#a855f7','#06b6d4','#ff1493'][i % 4],
+          }}
+          animate={{ opacity:[0.15,0.7,0.15], y:[0,-14,0] }}
+          transition={{ duration: 3 + (i % 5), repeat: Infinity, delay: i * 0.35, ease:'easeInOut' }}
+        />
+      ))}
+
+      {/* ── Corner brackets ── */}
+      {[{t:16,l:16},{t:16,r:16},{b:16,l:16},{b:16,r:16}].map((c,i)=>(
+        <div key={i} className="absolute w-10 h-10 pointer-events-none" style={{
+          top:c.t, bottom:c.b, left:c.l, right:c.r,
+          borderTop: c.t!==undefined ? '1px solid rgba(255,100,0,0.3)' : undefined,
+          borderBottom: c.b!==undefined ? '1px solid rgba(255,100,0,0.3)' : undefined,
+          borderLeft: c.l!==undefined ? '1px solid rgba(255,100,0,0.3)' : undefined,
+          borderRight: c.r!==undefined ? '1px solid rgba(255,100,0,0.3)' : undefined,
+        }}/>
+      ))}
+
+      {/* ── SVG connection lines ── */}
+      <div className="absolute inset-0 pointer-events-none" style={{zIndex:1}}>
+        {NODE_POSITIONS.map((pos, i) => {
+          const rad = deg2rad(pos.angle);
+          const ux = Math.cos(rad);
+          const uy = Math.sin(rad);
+          const sx = CORE_LINE_R * ux;
+          const sy = CORE_LINE_R * uy;
+          const nx = ORBIT_R * ux;
+          const ny = ORBIT_R * uy;
+          const lineLength = ORBIT_R - CORE_LINE_R - NODE_LINE_R;
+          const isAct = i === activeTab;
+          const dimmed = isExpanded && !isAct;
+          const color = categories[i].color;
+          return (
+            <React.Fragment key={i}>
+              {isAct && (
+                <motion.div
+                  className="absolute rounded-full"
+                  style={{
+                    left:`calc(50% + ${nx}px)`,
+                    top:`calc(50% + ${ny}px + ${ORBIT_Y_OFFSET}px)`,
+                    width:NODE_SIZE + 4,
+                    height:NODE_SIZE + 4,
+                    border:`1px solid ${color}`,
+                    transform:'translate(-50%,-50%)',
+                  }}
+                  initial={{scale:1,opacity:0.8}} animate={{scale:1.63,opacity:0}}
+                  transition={{duration:1.4,repeat:Infinity,ease:'easeOut'}}
+                />
+              )}
+              <motion.div
+                className="absolute"
+                style={{
+                  left:`calc(50% + ${sx}px)`,
+                  top:`calc(50% + ${sy}px + ${ORBIT_Y_OFFSET}px)`,
+                  width:lineLength,
+                  height:isAct ? 2 : 1,
+                  transform:`rotate(${pos.angle}deg)`,
+                  transformOrigin:'left center',
+                  background:isAct
+                    ? color
+                    : `repeating-linear-gradient(90deg, ${color} 0 6px, transparent 6px 11px)`,
+                  boxShadow:isAct ? `0 0 14px ${color}` : 'none',
+                }}
+                animate={{ opacity: dimmed ? 0.04 : isAct ? [0.55,1,0.55] : 0.22 }}
+                transition={{duration:2,repeat:isAct?Infinity:0,ease:'easeInOut'}}
+              >
+                {isAct && (
+                  <motion.span
+                    className="absolute rounded-full"
+                    style={{
+                      left:0,
+                      top:'50%',
+                      width:8,
+                      height:8,
+                      background:color,
+                      boxShadow:`0 0 14px ${color}`,
+                      transform:'translate(-50%,-50%)',
+                    }}
+                    animate={{ x:[0,lineLength,0] }}
+                    transition={{duration:2,repeat:Infinity,ease:'linear'}}
+                  />
+                )}
+              </motion.div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* ── AI Core (shrinks when panel is open) ── */}
+      <motion.div className="absolute" style={{left:'50%',top:`calc(50% + ${ORBIT_Y_OFFSET}px)`,zIndex:10}}
+        animate={{
+          x: isExpanded ? '-50%' : '-50%',
+          y: isExpanded ? '-50%' : '-50%',
+          scale: isExpanded ? 0.55 : 1,
+          opacity: isExpanded ? 0.4 : 1,
+        }}
+        transition={{duration:0.4,ease:[0.16,1,0.3,1]}}
+      >
+        <motion.div className="relative flex items-center justify-center rounded-full"
+          style={{
+            width:CORE_SIZE, height:CORE_SIZE,
+            background:'radial-gradient(circle, #ff6600 0%, #cc3300 40%, #1a0800 100%)',
+            boxShadow:'0 0 60px rgba(255,100,0,0.7),0 0 120px rgba(255,100,0,0.3)',
+            border:'2px solid rgba(255,150,0,0.6)',
+          }}
+          animate={!isExpanded ? {
+            scale:[1,1.05,1],
+            boxShadow:['0 0 60px rgba(255,100,0,0.7)','0 0 90px rgba(255,150,0,0.9)','0 0 60px rgba(255,100,0,0.7)']
+          } : {}}
+          transition={{duration:2.5,repeat:Infinity,ease:'easeInOut'}}
+        >
+          <div className="text-center z-10 relative">
+            <div className="text-white font-black text-xl leading-none" style={{textShadow:'0 0 20px rgba(255,200,0,0.9)'}}>AI</div>
+            <div className="text-orange-200 font-bold text-[9px] tracking-widest mt-0.5 uppercase">Core</div>
+          </div>
+          <motion.div className="absolute rounded-full border"
+            style={{width:CORE_RING_SIZE,height:CORE_RING_SIZE,borderColor:'rgba(255,100,0,0.2)',top:-16,left:-16}}
+            animate={{rotate:360}} transition={{duration:20,repeat:Infinity,ease:'linear'}}
+          />
+        </motion.div>
+      </motion.div>
+
+      {/* ── Orbit nodes ── */}
+      {NODE_POSITIONS.map((pos, i) => {
+        const cat = categories[i];
+        const rad = deg2rad(pos.angle);
+        const isHov = hovered === i;
+        const isOpen = openIdx === i;
+        const isActive = activeTab === i;
+        const dimmed = isExpanded && !isOpen;
+        return (
+          <div key={i}
+            className="absolute cursor-pointer select-none"
+            style={{
+              left:`calc(50% + ${ORBIT_R*Math.cos(rad)}px)`,
+              top:`calc(50% + ${ORBIT_R*Math.sin(rad)}px + ${ORBIT_Y_OFFSET}px)`,
+              transform:`translate(-50%, ${isOpen ? `-${OPEN_NODE_SIZE / 2}px` : `-${NODE_SIZE / 2}px`})`,
+              zIndex: isOpen ? 12 : 10,
+            }}
+            onMouseEnter={()=>setHovered(i)}
+            onMouseLeave={()=>setHovered(null)}
+            onClick={()=>{
+              setActiveIdx(i);
+              setOpenIdx(openIdx===i ? null : i);
+            }}
+          >
+            <motion.div
+              className="relative flex flex-col items-center"
+              animate={{ opacity:dimmed?0.22:1 }}
+              transition={{duration:0.25,ease:'easeOut'}}
+            >
+            <motion.div className="relative flex items-center justify-center rounded-full"
+              style={{
+                width:isOpen?OPEN_NODE_SIZE:NODE_SIZE, height:isOpen?OPEN_NODE_SIZE:NODE_SIZE,
+                background:dark?`radial-gradient(circle,${cat.color}30 0%,${cat.color}08 100%)`:`radial-gradient(circle,${cat.color}20 0%,${cat.color}05 100%)`,
+                border:`2px solid ${isOpen||isActive?cat.color:cat.color+'40'}`,
+              }}
+              animate={{
+                boxShadow: isOpen||isHov
+                  ? [`0 0 30px ${cat.color}80,0 0 60px ${cat.color}30`,`0 0 50px ${cat.color}90,0 0 80px ${cat.color}40`,`0 0 30px ${cat.color}80,0 0 60px ${cat.color}30`]
+                  : `0 0 8px ${cat.color}20`
+              }}
+              transition={{duration:1.5,repeat:isOpen?Infinity:0,ease:'easeInOut'}}
+            >
+              <span style={{color:cat.color}}>{React.cloneElement(cat.icon,{className:'w-7 h-7'})}</span>
+            </motion.div>
+            <div className="mt-2 text-center" style={{maxWidth:90}}>
+              <div className="font-bold text-[11px] leading-tight"
+                style={{color:isOpen?cat.color:isHov?cat.color:(dark?'#94a3b8':'#475569')}}>
+                {cat.shortLabel}
+              </div>
+              <div className="text-[9px] font-semibold mono mt-0.5" style={{color:dark?'#475569':'#94a3b8'}}>
+                {cat.tools.length} tools
+              </div>
+            </div>
+
+            {/* Hover tooltip — only in orbit view */}
+            <AnimatePresence>
+              {isHov && !isExpanded && (
+                <motion.div
+                  initial={{opacity:0,y:6,scale:0.95}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:4,scale:0.95}}
+                  transition={{duration:0.15}}
+                  className="absolute rounded-xl px-3 py-2 text-center pointer-events-none"
+                  style={{
+                    top:-72,left:'50%',transform:'translateX(-50%)',width:170,zIndex:30,
+                    background:dark?'rgba(10,15,40,0.97)':'rgba(255,255,255,0.97)',
+                    border:`1px solid ${cat.color}50`,
+                    boxShadow:`0 8px 30px ${cat.color}30`,
+                  }}
+                >
+                  <p className="text-[10px] font-semibold leading-tight" style={{color:dark?'#e2e8f0':'#1e293b'}}>{cat.summary}</p>
+                  <p className="text-[9px] mt-1 font-bold opacity-60" style={{color:cat.color}}>Click to explore →</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            </motion.div>
+          </div>
+        );
+      })}
+
+      {/* ── Inner panel: shown INSIDE the canvas when a node is open ── */}
+      <AnimatePresence>
+        {openCat && (
+          <motion.div
+            key={openIdx}
+            className="absolute inset-0 flex flex-col"
+            style={{ zIndex: 20, padding: '16px 20px 20px 20px' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Inner glassmorphism panel overlay matching screenshot exactly */}
+            <motion.div
+              className="relative w-full h-full rounded-2xl flex flex-col overflow-hidden"
+              style={{
+                background: dark ? 'rgba(6, 10, 26, 0.95)' : 'rgba(240, 245, 255, 0.96)',
+                border: dark ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid rgba(0, 0, 0, 0.1)',
+                boxShadow: `0 0 50px ${openCat.color}15, inset 0 0 30px rgba(0,0,0,0.4)`,
+                backdropFilter: 'blur(20px)',
+              }}
+              initial={{ scale: 0.96, y: 12 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.97, y: 8 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {/* Top glowing gold/neon gradient line from screenshot */}
+              <div className="absolute top-0 left-0 right-0 h-[2.5px] z-20" style={{
+                background: `linear-gradient(90deg, transparent 15%, ${openCat.color} 50%, transparent 85%)`
+              }} />
+
+              {/* Background glow blob */}
+              <div className="absolute top-0 right-0 w-72 h-72 rounded-full blur-3xl pointer-events-none opacity-[0.05]"
+                style={{ background: openCat.color, transform: 'translate(30%, -30%)' }}
+              />
+
+              {/* Panel Header */}
+              <div className="relative z-10 flex items-center justify-between px-6 py-5 shrink-0 border-b"
+                style={{ borderBottomColor: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}
+              >
+                <div className="flex items-center gap-4">
+                  {/* Styled Icon box */}
+                  <div className="w-12 h-12 flex items-center justify-center rounded-xl border shrink-0"
+                    style={{
+                      background: dark ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.9)',
+                      borderColor: `${openCat.color}50`,
+                      boxShadow: `0 0 12px ${openCat.color}25`,
+                    }}
+                  >
+                    <span style={{ color: openCat.color }}>{React.cloneElement(openCat.icon, { className: 'w-6 h-6' })}</span>
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-xl leading-tight text-slate-900 dark:text-slate-100 tracking-wide">
+                      {openCat.label}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: openCat.color }} />
+                      <span className="text-[10px] font-extrabold mono uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        {openCat.tools.length} TECHNOLOGIES <span className="opacity-30 mx-1">•</span> {openCat.summary}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Circular close button matching screenshot exactly */}
+                <button
+                  onClick={() => setOpenIdx(null)}
+                  className="p-1 rounded-full border border-slate-300 dark:border-slate-700/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-all hover:scale-110 shrink-0 flex items-center justify-center w-8 h-8"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Tool cards — scrollable inside canvas */}
+              <div className="relative z-10 flex-1 overflow-y-auto px-6 py-6"
+                style={{ scrollbarWidth: 'thin', scrollbarColor: `${openCat.color}40 transparent` }}
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+                  {openCat.tools.map((tool, i) => (
+                    <motion.div key={i}
+                      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.28, delay: i * 0.05, ease: 'easeOut' }}
+                    >
+                      <TechnologyCard tool={tool} activeColor={openCat.color} dark={dark} />
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+
+
 const App = () => {
   const [dark, setDark] = useState(true);
   const [projectModal, setProjectModal] = useState(null);
@@ -515,7 +1158,6 @@ const App = () => {
   const [showFullJourney, setShowFullJourney] = useState(false);
   const [showFullCerts, setShowFullCerts] = useState(false);
   const [cookieConsent, setCookieConsent] = useState(null);
-  const [activeAiTab, setActiveAiTab] = useState(0);
   const skillsRef = useRef(null);
 
   // Cookie Logic
@@ -711,9 +1353,9 @@ const App = () => {
   <h2>Work Experience</h2>
 
   <div class="job">
-    <div class="job-period">Apr 2025 – Present</div>
+    <div class="job-period">Feb 2024 - Feb 2026</div>
     <div class="job-title">Data Analyst – Admin Executive</div>
-    <div class="job-company">Market Maven Research</div>
+    <div class="job-company">Market Maven Research <span style="font-weight: 400; font-size: 11px; font-style: italic; color: #94a3b8;">, Bengaluru, Karnataka</span></div>
     <ul class="points">
       <li>Directed CRM operations for 100+ sales team members, improving efficiency and lead assignment accuracy.</li>
       <li>Developed centralized Master Sheets to track clients, payments, complaints, and service upgrades.</li>
@@ -722,9 +1364,9 @@ const App = () => {
   </div>
 
   <div class="job">
-    <div class="job-period">Aug 2024 – Feb 2025</div>
+    <div class="job-period">Oct 2022 - Jan 2024</div>
     <div class="job-title">Market Research &amp; Data Analyst</div>
-    <div class="job-company">TRIO Clothing's</div>
+    <div class="job-company">TRIO Clothing's <span style="font-weight: 400; font-size: 11px; font-style: italic; color: #94a3b8;">, Kathmandu, Nepal</span></div>
     <ul class="points">
       <li>Conducted research on fashion trends across India and Nepal for product development strategy.</li>
       <li>Recommended cost-effective raw material sourcing locations, optimizing procurement costs.</li>
@@ -735,7 +1377,7 @@ const App = () => {
   <div class="job">
     <div class="job-period">Apr 2022 – Aug 2024</div>
     <div class="job-title">Power BI Developer &amp; Data Analyst</div>
-    <div class="job-company">Freelance Solutions</div>
+    <div class="job-company">Freelancing</div>
     <ul class="points">
       <li>Engineered scalable data models and automated workflows using Power BI, SQL, and Python.</li>
       <li>Created interactive dashboards for executives using Power BI, Tableau, and Google Data Studio.</li>
@@ -780,9 +1422,14 @@ const App = () => {
     <div style="font-size: 12px; color: #334155;">Built an end-to-end Retrieval-Augmented Generation (RAG) pipeline with autonomous multi-step reasoning for business data Q&A.</div>
   </div>
   <div class="job">
-    <div class="job-title">Esports Performance Analysis (PMGC 2023)</div>
-    <div style="font-size: 11px; color: #475569; margin-bottom: 2px;">Power BI, SQL, Data Cleaning</div>
-    <div style="font-size: 12px; color: #334155;">In-depth analysis and visualization of PMGC tournament data to track team/player performance metrics.</div>
+    <div class="job-title">Netflix Content Analysis (EDA)</div>
+    <div style="font-size: 11px; color: #475569; margin-bottom: 2px;">Python, Pandas, Seaborn, Matplotlib</div>
+    <div style="font-size: 12px; color: #334155;">Comprehensive Exploratory Data Analysis of Netflix's catalog to uncover content trends, regional availability, and target demographics over the last decade.</div>
+  </div>
+  <div class="job">
+    <div class="job-title">PMGC Esports Performance Analysis (2020-2025)</div>
+    <div style="font-size: 11px; color: #475569; margin-bottom: 2px;">Vanilla JS, HTML5, CSS3, JSON</div>
+    <div style="font-size: 12px; color: #334155;">Engineered a custom interactive web dashboard using JSON datasets to visualize 5 years of historical performance metrics.</div>
   </div>
   <div class="job">
     <div class="job-title">Financial KPI Dashboard</div>
@@ -825,22 +1472,45 @@ const App = () => {
 
   const projects = [
     {
-      title: 'Netflix Recommendation System',
-      desc: 'Machine learning based recommendation engine using collaborative filtering and content-based approaches.',
-      tech: ['Python', 'Pandas', 'Scikit-Learn'],
-      github: 'https://github.com/ursrahuladhikari/netflix-recommendation'
+      title: 'Netflix Content Analysis (EDA)',
+      desc: 'Comprehensive Exploratory Data Analysis (EDA) of Netflix\'s content catalog to uncover trends in ratings, genres, and regional availability.',
+      tech: ['Python', 'Pandas', 'Seaborn', 'Matplotlib'],
+      github: 'https://github.com/ursrahuladhikari/Netflix-Content-Analysis-EDA-',
+      highlights: [
+        'Analyzed 8,000+ titles using Python to identify shifting content strategies and production trends over the last decade.',
+        'Segmented data by country and rating to uncover regional content preferences and target demographics.',
+        'Demonstrated strong data wrangling skills by handling missing values and engineering new features for deeper insights.'
+      ]
     },
     {
       title: 'Financial KPI Dashboard',
-      desc: 'Automated financial reporting tool built with Excel VBA and integrated into Power BI for real-time tracking.',
-      tech: ['Excel VBA', 'Power BI', 'DAX'],
-      github: 'https://github.com/ursrahuladhikari/financial-dashboard'
+      desc: 'Interactive financial summary dashboard for tracking revenue, expenses, profit and loss, payment methods, departments, quarters, and monthly performance across fiscal views.',
+      tech: ['Excel', 'Pivot Charts', 'Slicers', 'Financial Analytics'],
+      github: 'https://github.com/ursrahuladhikari/Financial-KPI-Dashboard',
+      screenshots: [
+        { src: '/projects/financial-kpi-dashboard/default-view.png', label: 'Default financial summary view' },
+        { src: '/projects/financial-kpi-dashboard/payment-credit-card.png', label: 'Payment method filter: Credit Card' },
+        { src: '/projects/financial-kpi-dashboard/payment-bank-transfer.png', label: 'Payment method filter: Bank Transfer' },
+        { src: '/projects/financial-kpi-dashboard/q1-view.png', label: 'Quarter filter: Q1 performance' },
+        { src: '/projects/financial-kpi-dashboard/q4-view.png', label: 'Quarter filter: Q4 performance' }
+      ],
+      highlights: [
+        'Built a multi-view financial dashboard with KPI cards for revenue, expense, profit and loss, max revenue, and max expense.',
+        'Added slicer-driven analysis for year, month, quarter, department, and payment method to support fast scenario comparisons.',
+        'Visualized category mix, departmental revenue vs expense, and monthly profit trends for finance performance review.'
+      ]
     },
     {
-      title: 'Esports Performance Analysis',
-      desc: 'In-depth analysis of PMGC 2023 tournament data using Power BI to visualize team and player metrics.',
-      tech: ['Power BI', 'SQL', 'Data Cleaning'],
-      github: 'https://github.com/ursrahuladhikari/esports-analysis'
+      title: 'PMGC Esports Performance Analysis (2020-2025)',
+      desc: 'In-depth analysis of PUBG Mobile Global Championship (PMGC) tournament data to visualize historical team and player performance metrics.',
+      tech: ['Vanilla JS', 'HTML5/CSS3', 'JSON Data Architecture'],
+      github: 'https://github.com/ursrahuladhikari/PMGC-Insights-Analysis-2020-2025',
+      liveUrl: 'https://pmgc-insights-analysis-2020-2025.vercel.app/',
+      highlights: [
+        'Engineered a comprehensive, interactive esports web dashboard using Vanilla JavaScript, HTML5, and a custom CSS3 design system.',
+        'Implemented dynamic data rendering from custom JSON datasets to visualize 5 years of historical tournament statistics, regional distributions, and map pools.',
+        'Designed UX-focused features including dynamic year navigation, chronological timelines, and high-performance particle network animations.'
+      ]
     },
     {
       title: 'RAG-Powered Agentic AI Assistant',
@@ -902,6 +1572,11 @@ const App = () => {
         .animate-marquee {
           animation: marquee 40s linear infinite;
         }
+        @keyframes logoBar {
+          0%, 100% { transform: scaleY(0.35); opacity: 0.25; }
+          50% { transform: scaleY(1); opacity: 0.7; }
+        }
+        .logo-bar { animation: logoBar var(--dur, 1.6s) ease-in-out infinite; animation-delay: var(--delay, 0s); transform-origin: bottom; }
       `}</style>
 
       {/* Mobile Sidebar */}
@@ -909,8 +1584,8 @@ const App = () => {
         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
         <aside className={`absolute left-0 top-0 bottom-0 w-72 bg-white dark:bg-slate-800 shadow-2xl transition-transform duration-300 ${drawerOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="p-6">
-            <div className="flex items-center justify-between mb-8">
-              <span className="text-xl font-black tracking-tighter text-gradient">RA.TECH</span>
+            <div className="flex items-center justify-between mb-8 -mt-2">
+              <img src="/logo.png" alt="RA Logo" className="h-20 w-auto object-contain" />
               <button onClick={() => setDrawerOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-full text-hot-pink">
                 <X size={20} />
               </button>
@@ -933,10 +1608,70 @@ const App = () => {
       {/* Header */}
       <header className={`fixed top-0 w-full z-40 px-6 py-4 backdrop-blur-md transition-[background-color,border-color,box-shadow] duration-300 ${scrolled ? 'bg-white/80 dark:bg-slate-900/80 border-b border-black/8 dark:border-white/10 shadow-sm' : 'bg-transparent border-b border-transparent'}`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => scrollToId('')}>
-            <span className="text-2xl font-black tracking-tighter text-gradient group-hover:scale-105 transition-transform">
-              RA.TECH
-            </span>
+          <div className="relative flex items-center group cursor-pointer" style={{ height: '2rem', width: '11rem' }} onClick={() => scrollToId('')}>
+
+            {/* Bars clipped to header height — cannot overflow below the nav line */}
+            <div className="absolute pointer-events-none" style={{
+              top: '-1rem', bottom: '-1rem', left: 0, width: '11rem',
+              overflow: 'hidden', zIndex: 0,
+              display: 'flex', alignItems: 'flex-end',
+            }}>
+              {/* Red bars — left side */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '100%', marginLeft: '0.5rem' }}>
+                {[
+                  { h: '40%', dur: '1.8s', delay: '0s'   },
+                  { h: '70%', dur: '1.3s', delay: '0.2s' },
+                  { h: '30%', dur: '2.0s', delay: '0.4s' },
+                  { h: '55%', dur: '1.5s', delay: '0.1s' },
+                  { h: '80%', dur: '1.7s', delay: '0.3s' },
+                  { h: '45%', dur: '1.2s', delay: '0.5s' },
+                ].map((b, i) => (
+                  <div key={i} className="logo-bar" style={{
+                    width: '1.5px', height: b.h, borderRadius: '1px',
+                    background: 'linear-gradient(to top, #cc1010, #ff4444)',
+                    boxShadow: '0 0 3px rgba(220,30,30,0.5)',
+                    '--dur': b.dur, '--delay': b.delay,
+                  }} />
+                ))}
+              </div>
+
+              {/* Blue bars — right side */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '100%', marginLeft: '3rem' }}>
+                {[
+                  { h: '60%', dur: '1.6s', delay: '0.15s' },
+                  { h: '35%', dur: '1.9s', delay: '0.35s' },
+                  { h: '75%', dur: '1.4s', delay: '0s'    },
+                  { h: '50%', dur: '2.1s', delay: '0.25s' },
+                  { h: '85%', dur: '1.6s', delay: '0.45s' },
+                  { h: '40%', dur: '1.3s', delay: '0.1s'  },
+                ].map((b, i) => (
+                  <div key={i} className="logo-bar" style={{
+                    width: '1.5px', height: b.h, borderRadius: '1px',
+                    background: 'linear-gradient(to top, #0066cc, #22d3ee)',
+                    boxShadow: '0 0 3px rgba(34,211,238,0.4)',
+                    '--dur': b.dur, '--delay': b.delay,
+                  }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Logo — top margin, legs overflow below */}
+            <img
+              src="/logo.png"
+              alt="RA Logo"
+              className="group-hover:scale-105 transition-transform origin-left"
+              style={{
+                position: 'absolute',
+                top: '-2.4rem',
+                left: 0,
+                height: '9.45rem',
+                transform: 'rotate(-2deg)',
+                width: 'auto',
+                objectFit: 'contain',
+                filter: 'brightness(1.7) contrast(1.25) saturate(1.3) drop-shadow(0 0 18px rgba(6,182,212,0.7)) drop-shadow(0 0 8px rgba(220,30,30,0.5))',
+                zIndex: 1,
+              }}
+            />
           </div>
 
           <nav className="flex items-center gap-2 sm:gap-6">
@@ -1124,19 +1859,32 @@ const App = () => {
       {projectModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={() => setProjectModal(null)} />
-          <div className="relative glass-card rounded-2xl p-8 max-w-2xl w-full shadow-2xl scale-in overflow-hidden border-[#ff1493]/30">
+          <div className="relative glass-card rounded-2xl p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl scale-in border-[#ff1493]/30">
             <button onClick={() => setProjectModal(null)} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-[#ff1493] transition-colors"><X size={20} /></button>
             <h3 className="text-2xl font-bold mb-4 pr-10">{projectModal.title}</h3>
+            <ProjectSlideshow images={projectModal.screenshots} title={projectModal.title} />
             <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-8">{projectModal.desc}</p>
             <div className="space-y-4">
               <h4 className="text-sm font-bold uppercase tracking-wider text-slate-400 mono">Project Highlights</h4>
               <ul className="space-y-2">
-                <li className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300"><div className="w-1.5 h-1.5 rounded-full bg-[#ff1493] pink-glow" /> Advanced data processing with {projectModal.tech[0]}</li>
-                <li className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300"><div className="w-1.5 h-1.5 rounded-full bg-[#ff1493] pink-glow" /> Interactive visualizations and reporting</li>
+                {projectModal.highlights ? projectModal.highlights.map((highlight, idx) => (
+                  <li key={idx} className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#ff1493] pink-glow mt-1.5 shrink-0" />
+                    <span>{highlight}</span>
+                  </li>
+                )) : (
+                  <>
+                    <li className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300"><div className="w-1.5 h-1.5 rounded-full bg-[#ff1493] pink-glow" /> Advanced data processing with {projectModal.tech[0]}</li>
+                    <li className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300"><div className="w-1.5 h-1.5 rounded-full bg-[#ff1493] pink-glow" /> Interactive visualizations and reporting</li>
+                  </>
+                )}
               </ul>
             </div>
-            <div className="mt-10 flex gap-4">
-              <a href={projectModal.github} target="_blank" rel="noreferrer" className="flex-1 py-3 bg-pink-gradient text-white rounded-lg font-bold text-center hover:opacity-90 transition-opacity">View Source</a>
+            <div className="mt-10 flex flex-col sm:flex-row gap-4">
+              {projectModal.liveUrl && (
+                <a href={projectModal.liveUrl} target="_blank" rel="noreferrer" className="flex-1 py-3 bg-[#06b6d4]/10 border border-[#06b6d4]/30 text-[#06b6d4] hover:bg-[#06b6d4]/20 hover:border-[#06b6d4]/60 rounded-lg font-bold text-center transition-all shadow-sm">View Live Demo</a>
+              )}
+              <a href={projectModal.github} target="_blank" rel="noreferrer" className="flex-1 py-3 bg-pink-gradient text-white rounded-lg font-bold text-center hover:opacity-90 transition-opacity">View Source Code</a>
             </div>
           </div>
         </div>
@@ -1182,7 +1930,8 @@ const App = () => {
               {
                 title: 'Data Analyst – Admin Executive',
                 company: 'Market Maven Research',
-                period: 'Apr 2025 – Present',
+                location: 'Bengaluru, Karnataka',
+                period: 'Feb 2024 - Feb 2026',
                 points: [
                   'Directed CRM operations for 100+ sales team members, improving efficiency and lead assignment accuracy.',
                   'Developed centralized Master Sheets to track clients, payments, complaints, and service upgrades.',
@@ -1192,7 +1941,8 @@ const App = () => {
               {
                 title: 'Market Research & Data Analyst',
                 company: 'TRIO Clothing’s',
-                period: 'Aug 2024 – Feb 2025',
+                location: 'Kathmandu, Nepal',
+                period: 'Oct 2022 - Jan 2024',
                 points: [
                   'Conducted research on fashion trends across India and Nepal for product development strategy.',
                   'Recommended cost-effective raw material sourcing locations, optimizing procurement costs.',
@@ -1201,7 +1951,7 @@ const App = () => {
               },
               {
                 title: 'Power BI Developer & Data Analyst',
-                company: 'Freelance Solutions',
+                company: 'Freelancing',
                 period: 'Apr 2022 – Aug 2024',
                 points: [
                   'Engineered scalable data models and automated workflows using Power BI, SQL, and Python.',
@@ -1227,7 +1977,10 @@ const App = () => {
                     </div>
                     <h3 className="hidden md:block text-2xl font-bold mb-1">{job.title}</h3>
 
-                    <p className="inline-block px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-sm font-bold text-slate-500 mb-4 mono">{job.company}</p>
+                    <p className="inline-block px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-sm font-bold text-slate-500 mb-4 mono">
+                      {job.company}
+                      {job.location && <span className="text-xs font-normal italic text-slate-400 dark:text-slate-500 ml-1">, {job.location}</span>}
+                    </p>
                     <ul className="space-y-3">
                       {job.points.map((p, i) => (
                         <li key={i} className="text-slate-800 dark:text-slate-400 text-sm leading-relaxed flex gap-3">
@@ -1355,8 +2108,8 @@ const App = () => {
         </div>
       </section>
 
-      {/* Generative AI & Automation Tools */}
-      <section id="ai-tools" className="py-24 px-6 max-w-7xl mx-auto">
+      {/* Generative AI & Automation Tools — AI Ecosystem */}
+      <section id="ai-tools" className="py-24 px-4 max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <div className="mono text-[#ff1493] text-sm mb-2">// Modern Workflow</div>
           <h2 className="text-4xl md:text-5xl font-black mb-4">Generative AI &amp; Automation Tools</h2>
@@ -1366,131 +2119,103 @@ const App = () => {
         </div>
 
         {(() => {
-          const aiCategories = [
-            {
-              label: 'Workflow Automation',
-              color: '#06b6d4',
-              bgLight: 'bg-cyan-50',
-              bgDark: 'dark:bg-cyan-900/20',
-              badgeBg: 'bg-cyan-100 dark:bg-cyan-900/40',
-              badgeBorder: 'border-cyan-300 dark:border-cyan-700/50',
-              dotShadow: '0_0_6px_#06b6d4',
-              borderActive: 'border-[#06b6d4]',
-              icon: (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              ),
-              tools: [
-                { name: 'n8n', desc: 'Self-hosted workflow automation & API orchestration', badge: 'Open Source' },
-                { name: 'Microsoft Power Automate', desc: 'Enterprise process automation across the Microsoft 365 ecosystem', badge: 'Enterprise' },
-              ]
-            },
+          const toolCategories = [
             {
               label: 'AI Assistants & LLMs',
+              shortLabel: 'AI Assistants',
               color: '#ff1493',
-              bgLight: 'bg-pink-50',
-              bgDark: 'dark:bg-pink-900/10',
-              badgeBg: 'bg-pink-100 dark:bg-pink-900/40',
-              badgeBorder: 'border-pink-300 dark:border-pink-700/50',
-              dotShadow: '0_0_6px_#ff1493',
-              borderActive: 'border-[#ff1493]',
-              icon: <BrainCircuit className="w-4 h-4" />,
+              icon: <BrainCircuit className="w-5 h-5" />,
+              summary: 'Large language models for reasoning, coding & conversation',
               tools: [
-                { name: 'Google AI Studio', desc: 'Prototyping with Gemini models for data & content tasks', badge: 'Gemini' },
-                { name: 'Google Antigravity', desc: 'AI-powered agentic coding & rapid development assistant', badge: 'Agentic' },
-                { name: 'Claude (Anthropic)', desc: 'Advanced reasoning, document analysis & code generation', badge: 'LLM' },
+                { name: 'Google AI Studio', badge: 'Gemini', description: 'Prototyping with Gemini models for data & content tasks.', useCases: ['Model prototyping', 'Prompt engineering', 'API testing'], bestFor: 'Developers building Gemini-powered applications.', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/googlecloud/googlecloud-original.svg' },
+                { name: 'Claude (Anthropic)', badge: 'LLM', description: 'Advanced reasoning, document analysis & code generation.', useCases: ['Code refactoring', 'Large context parsing', 'Writing'], bestFor: 'Complex reasoning tasks requiring high contextual awareness.', logo: 'https://cdn.simpleicons.org/anthropic?viewbox=auto' },
+                { name: 'ChatGPT', badge: 'OpenAI', description: 'Versatile conversational AI for analysis and task automation.', useCases: ['Data analysis', 'Automation scripting', 'General queries'], bestFor: 'Everyday task automation and quick code snippets.', logo: 'https://www.google.com/s2/favicons?domain=chatgpt.com&sz=128' },
+                { name: 'Meta AI', badge: 'Multi-modal', description: 'Intelligent assistant for social integration and creative generation.', useCases: ['Image generation', 'Conversational AI', 'Social tools'], bestFor: 'Integrated multimodal workflows.', logo: 'https://cdn.simpleicons.org/meta?viewbox=auto' },
+                { name: 'Cursor', badge: 'IDE', description: 'AI-native code editor designed for pair programming with LLMs.', useCases: ['Pair programming', 'Codebase chatting', 'Auto-completion'], bestFor: 'Developers seeking maximum coding efficiency.', logo: 'https://cdn.simpleicons.org/cursor?viewbox=auto' },
+                { name: 'Google Antigravity', badge: 'Agentic', description: 'AI-powered agentic coding & rapid development assistant.', useCases: ['Autonomous task execution', 'Complex planning', 'Full-stack dev'], bestFor: 'Advanced autonomous agentic workflows.', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/google/google-original.svg' },
               ]
             },
             {
-              label: 'Productivity & Design',
-              color: '#a78bfa',
-              bgLight: 'bg-violet-50',
-              bgDark: 'dark:bg-violet-900/10',
-              badgeBg: 'bg-violet-100 dark:bg-violet-900/40',
-              badgeBorder: 'border-violet-300 dark:border-violet-700/50',
-              dotShadow: '0_0_6px_#a78bfa',
-              borderActive: 'border-[#a78bfa]',
-              icon: (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-              ),
+              label: 'Data Generation & Aug',
+              shortLabel: 'Data Gen',
+              color: '#f59e0b',
+              icon: <Database className="w-5 h-5" />,
+              summary: 'Synthetic data, notebooks & augmentation pipelines',
               tools: [
-                { name: 'Notion', desc: 'AI-powered knowledge management, project tracking & docs', badge: 'PKM' },
-                { name: 'Canva', desc: 'AI-assisted design for dashboards, reports & presentations', badge: 'Design' },
-                { name: 'Adobe Photoshop', desc: 'Professional image editing & visual asset creation', badge: 'Adobe' },
-                { name: 'Adobe Firefly', desc: 'Generative AI image creation & creative content automation', badge: 'GenAI' },
+                { name: 'DataRobot', badge: 'Enterprise', description: 'End-to-end AI platform for predictive modeling and generation.', useCases: ['Predictive modeling', 'MLOps', 'Automated ML'], bestFor: 'Enterprise teams deploying ML models at scale.', logo: 'https://www.google.com/s2/favicons?domain=datarobot.com&sz=128' },
+                { name: 'Mostly.ai', badge: 'Synthetic', description: 'Synthetic data generation for privacy-safe AI training.', useCases: ['Privacy compliance', 'Test data generation', 'Data augmentation'], bestFor: 'Organizations handling sensitive PII data.', logo: 'https://www.google.com/s2/favicons?domain=mostly.ai&sz=128' },
+                { name: 'Google Colab', badge: 'Compute', description: 'Interactive notebook for high-performance data computation.', useCases: ['GPU-accelerated training', 'Data EDA', 'Prototyping'], bestFor: 'Data scientists needing immediate access to GPU compute.', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/googlecloud/googlecloud-original.svg' },
+                { name: 'Jupyter Notebook', badge: 'Environment', description: 'Open-source web application for interactive computing.', useCases: ['Data visualization', 'Machine learning', 'Statistical modeling'], bestFor: 'Local and interactive exploratory data analysis.', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/jupyter/jupyter-original.svg' },
+                { name: 'Universal Data', badge: 'Augment', description: 'Scalable data augmentation and labeling infrastructure.', useCases: ['Data labeling', 'Dataset expansion', 'Quality control'], bestFor: 'Teams needing high-quality labeled datasets.', logo: 'https://www.google.com/s2/favicons?domain=universaldatatool.com&sz=128' },
+              ]
+            },
+            {
+              label: 'Data Prep & Query',
+              shortLabel: 'Data Prep',
+              color: '#10b981',
+              icon: <Layers className="w-5 h-5" />,
+              summary: 'Natural language SQL, cleaning & data wrangling',
+              tools: [
+                { name: 'ChatCSV', badge: 'Utility', description: 'Natural language interface for spreadsheet manipulation.', useCases: ['Rapid EDA', 'CSV querying', 'Data filtering'], bestFor: 'Non-technical stakeholders needing quick data answers.', logo: 'https://www.google.com/s2/favicons?domain=chatcsv.co&sz=128' },
+                { name: 'Tomato.ai', badge: 'Automation', description: 'Automated data cleaning and voice transformation tools.', useCases: ['Voice masking', 'Audio processing', 'Data standardization'], bestFor: 'Call centers and voice data processors.', logo: 'https://www.google.com/s2/favicons?domain=tomato.ai&sz=128' },
+                { name: 'SQLthroughAI', badge: 'SQL', description: 'Generating complex SQL queries from plain English prompts.', useCases: ['Query generation', 'Database exploration', 'Syntax correction'], bestFor: 'Analysts looking to speed up ad-hoc reporting.', logo: 'https://www.google.com/s2/favicons?domain=sqlthroughai.com&sz=128' },
+                { name: 'DBSensei', badge: 'Database', description: 'AI-powered database schema understanding and querying.', useCases: ['Schema analysis', 'Query optimization', 'Data mapping'], bestFor: 'Database administrators and data engineers.', logo: 'https://www.google.com/s2/favicons?domain=dbsensei.com&sz=128' },
+              ]
+            },
+            {
+              label: 'Insights & Analytics',
+              shortLabel: 'Analytics',
+              color: '#06b6d4',
+              icon: <BarChart3 className="w-5 h-5" />,
+              summary: 'Web analytics, predictive models & AI-driven insights',
+              tools: [
+                { name: 'Google Analytics', badge: 'Analytics', description: 'Comprehensive web traffic and user behavior tracking.', useCases: ['Traffic monitoring', 'Conversion tracking', 'User journey mapping'], bestFor: 'Marketing teams optimizing web performance.', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/google/google-original.svg' },
+                { name: 'Adobe Analytics', badge: 'Marketing', description: 'Enterprise-grade marketing and customer journey insights.', useCases: ['Omnichannel tracking', 'Predictive analytics', 'Customer segmentation'], bestFor: 'Large enterprises with complex multi-channel presences.', logo: 'https://www.google.com/s2/favicons?domain=adobe.com&sz=128' },
+                { name: 'Julius AI', badge: 'Reporting', description: 'Advanced data analysis and automated reporting specialist.', useCases: ['Data visualization', 'Automated insights', 'Statistical testing'], bestFor: 'Analysts who want a conversational copilot for charting.', logo: 'https://www.google.com/s2/favicons?domain=julius.ai&sz=128' },
+                { name: 'Akkio', badge: 'Predictive', description: 'No-code predictive analytics and AI data modeling.', useCases: ['Lead scoring', 'Churn prediction', 'Forecasting'], bestFor: 'Agencies and teams needing quick predictive models without coding.', logo: 'https://www.google.com/s2/favicons?domain=akkio.com&sz=128' },
+                { name: 'Halo.com', badge: 'Q&A', description: 'AI-driven Q&A interface for organizational data insights.', useCases: ['Internal knowledge base', 'Data democratisation', 'Natural language BI'], bestFor: 'Business users querying company databases.', logo: 'https://www.google.com/s2/favicons?domain=haloagents.ai&sz=128' },
+              ]
+            },
+            {
+              label: 'AI Frameworks & BI',
+              shortLabel: 'Frameworks',
+              color: '#6366f1',
+              icon: <Terminal className="w-5 h-5" />,
+              summary: 'BI platforms, dashboarding & embedded analytics',
+              tools: [
+                { name: 'Dash Plotly', badge: 'Framework', description: 'Python framework for building analytical web applications.', useCases: ['Interactive dashboards', 'Data apps', 'Python analytics'], bestFor: 'Teams that want custom analytical apps using Python.', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/plotly/plotly-original.svg' },
+                { name: 'Tableau AI', badge: 'BI', description: 'Intelligent visual analytics and automated insights.', useCases: ['Dashboard generation', 'Data storytelling', 'Automated insights'], bestFor: 'Data analysts looking to accelerate dashboard creation.', logo: 'https://www.google.com/s2/favicons?domain=tableau.com&sz=128' },
+                { name: 'Einstein Copilot', badge: 'Enterprise', description: 'Salesforce-integrated AI for CRM and data automation.', useCases: ['CRM automation', 'Sales forecasting', 'Customer insights'], bestFor: 'Salesforce-driven sales and marketing operations.', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/salesforce/salesforce-original.svg' },
+                { name: 'ThoughtSpot', badge: 'Search', description: 'Search and AI-driven analytics for real-time insights.', useCases: ['Natural language search', 'Live analytics', 'Embedded BI'], bestFor: 'Organizations prioritizing self-service analytics.', logo: 'https://www.google.com/s2/favicons?domain=thoughtspot.com&sz=128' },
+                { name: 'Sisense', badge: 'Embedded', description: 'Embedding advanced analytics into software and workflows.', useCases: ['Embedded analytics', 'Custom BI apps', 'API-driven data'], bestFor: 'Product teams embedding BI into their own SaaS platforms.', logo: 'https://www.google.com/s2/favicons?domain=sisense.com&sz=128' },
+              ]
+            },
+            {
+              label: 'Workflow & Productivity',
+              shortLabel: 'Workflow',
+              color: '#a78bfa',
+              icon: <Workflow className="w-5 h-5" />,
+              summary: 'Automation, design & productivity AI tools',
+              tools: [
+                { name: 'n8n', badge: 'Automation', description: 'Self-hosted workflow automation & API orchestration.', useCases: ['API integration', 'Data pipelines', 'Trigger-based workflows'], bestFor: 'Technical teams wanting flexible, code-friendly automation.', logo: 'https://cdn.simpleicons.org/n8n?viewbox=auto' },
+                { name: 'Notion AI', badge: 'Docs', description: 'AI-powered knowledge management and documentation.', useCases: ['Content summarization', 'Brainstorming', 'Writing assistance'], bestFor: 'Teams using Notion for centralized workspace management.', logo: 'https://cdn.simpleicons.org/notion?viewbox=auto' },
+                { name: 'Canva AI', badge: 'Design', description: 'AI-assisted design for reports and presentations.', useCases: ['Presentation generation', 'Image editing', 'Marketing assets'], bestFor: 'Marketers and analysts creating visual presentations.', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/canva/canva-original.svg' },
+                { name: 'Adobe Firefly', badge: 'GenAI', description: 'Generative AI for creative visual asset creation.', useCases: ['Image generation', 'Text effects', 'Vector recoloring'], bestFor: 'Designers needing commercially safe AI imagery.', logo: 'https://www.google.com/s2/favicons?domain=firefly.adobe.com&sz=128' },
               ]
             },
           ];
 
-          const active = aiCategories[activeAiTab];
-
           return (
-            <div className="max-w-3xl mx-auto">
-              {/* Tab Buttons */}
-              <div className="flex flex-wrap justify-center gap-3 mb-8">
-                {aiCategories.map((cat, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveAiTab(i)}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-300 border ${
-                      activeAiTab === i
-                        ? 'text-white shadow-lg scale-105'
-                        : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500'
-                    }`}
-                    style={activeAiTab === i ? {
-                      background: `linear-gradient(135deg, ${cat.color}cc, ${cat.color})`,
-                      borderColor: cat.color,
-                      boxShadow: `0 0 20px ${cat.color}55`
-                    } : {}}
-                  >
-                    <span style={activeAiTab === i ? { color: 'white' } : { color: cat.color }}>{cat.icon}</span>
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Active Tab Content */}
-              <HexGridCard
-                isDark={dark}
-                key={activeAiTab}
-                className="rounded-2xl border transition-all duration-300"
-                style={{ borderColor: `${active.color}40` }}
-              >
-                <div className="p-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2.5 rounded-lg" style={{ background: `${active.color}20`, border: `1px solid ${active.color}40` }}>
-                      <span style={{ color: active.color }}>{active.icon}</span>
-                    </div>
-                    <h3 className="text-xl font-bold" style={{ color: active.color }}>{active.label}</h3>
-                    <span className="ml-auto text-xs font-bold text-slate-400 mono">{active.tools.length} tools</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {active.tools.map((tool, i) => (
-                      <div
-                        key={i}
-                        className={`flex items-start gap-3 p-4 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 ${active.bgLight} ${active.bgDark} transition-colors`}
-                      >
-                        <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: active.color, boxShadow: `0 0 6px ${active.color}` }} />
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="font-bold text-sm text-slate-800 dark:text-slate-100">{tool.name}</span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${active.badgeBg} border ${active.badgeBorder}`} style={{ color: active.color }}>{tool.badge}</span>
-                          </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{tool.desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </HexGridCard>
+            <div className="w-full flex flex-col items-center">
+              {/* ── AI Ecosystem Canvas ── */}
+              <AiEcosystem categories={toolCategories} dark={dark} />
             </div>
           );
         })()}
       </section>
+
+
+
 
 
       {/* Certifications & Achievements */}
@@ -1654,7 +2379,6 @@ const App = () => {
       <footer className="py-12 border-t border-slate-200 dark:border-slate-800 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="text-lg font-black text-gradient">RA.TECH</div>
             <p className="text-sm font-medium text-slate-500">© {new Date().getFullYear()} Rahul Adhikari</p>
           </div>
           <div className="flex items-center gap-4 text-xs text-slate-400 font-mono tracking-wider">
