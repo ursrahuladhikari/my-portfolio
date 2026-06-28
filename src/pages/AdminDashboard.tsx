@@ -8,7 +8,12 @@ import {
   updateDoc, 
   deleteDoc 
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
+import { 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged 
+} from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -51,8 +56,10 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDark, onBackToHome }) => {
-  const [passcode, setPasscode] = useState('');
+  const [email] = useState('admin@rahuladhikari.com');
+  const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState(false);
   
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
@@ -66,12 +73,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDark, onBackTo
   const [serviceFilter, setServiceFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'budget'>('newest');
 
-  // Load auth state from session storage to keep logged in within the tab session
+  // Sync auth state reactively with Firebase Auth
   useEffect(() => {
-    const sessionAuth = sessionStorage.getItem('admin_authenticated');
-    if (sessionAuth === 'true') {
-      setIsAuthenticated(true);
-    }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user && user.email === 'admin@rahuladhikari.com') {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   // Real-time Firestore Subscriptions
@@ -96,23 +107,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDark, onBackTo
     return () => unsubscribe();
   }, [isAuthenticated]);
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Default secret passcode. Easily editable or configurable.
-    if (passcode === '1312' || passcode === 'admin123') {
-      setIsAuthenticated(true);
+    if (isLoggingIn) return;
+    
+    setIsLoggingIn(true);
+    setLoginError(false);
+    
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
       setLoginError(false);
-      sessionStorage.setItem('admin_authenticated', 'true');
-    } else {
+      setPassword('');
+    } catch (err) {
+      console.error("Login failed:", err);
       setLoginError(true);
-      setPasscode('');
+      setPassword('');
       setTimeout(() => setLoginError(false), 800);
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    sessionStorage.removeItem('admin_authenticated');
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
   };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
@@ -267,23 +288,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDark, onBackTo
               <h1 className="text-2xl font-black tracking-tight mb-2">
                 Authorized Access
               </h1>
-              <p className={`text-xs mb-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                Enter passcode to view client inquiries.
+              <p className={`text-xs mb-6 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                Enter password to view client inquiries.
               </p>
 
               <form onSubmit={handleLoginSubmit} className="space-y-4">
-                <div className="relative">
+                {/* Email field (pre-filled) */}
+                <div className="text-left">
+                  <label className="text-[10px] font-bold font-mono tracking-wider uppercase mb-1 block text-slate-400">
+                    ADMIN EMAIL
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    disabled
+                    className={`w-full py-2.5 px-4 rounded-xl text-sm outline-none border cursor-not-allowed ${
+                      isDark
+                        ? 'bg-slate-950/40 border-slate-800 text-slate-400'
+                        : 'bg-slate-100 border-slate-200 text-slate-500'
+                    }`}
+                  />
+                </div>
+
+                {/* Password field */}
+                <div className="text-left relative">
+                  <label className="text-[10px] font-bold font-mono tracking-wider uppercase mb-1 block text-slate-400">
+                    PASSWORD
+                  </label>
                   <input
                     type="password"
-                    value={passcode}
-                    onChange={(e) => setPasscode(e.target.value)}
-                    placeholder="Enter Passcode"
-                    className={`w-full py-3.5 px-4 rounded-xl text-center text-lg font-mono tracking-widest outline-none border transition-all ${
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter Password"
+                    className={`w-full py-3 px-4 rounded-xl text-sm outline-none border transition-all ${
                       loginError 
                         ? 'border-red-500 bg-red-500/5 dark:bg-red-500/10' 
                         : isDark
                           ? 'bg-slate-950/60 border-slate-800 focus:border-[#ff1493]/70 focus:bg-slate-950'
-                          : 'bg-slate-100 border-slate-300 focus:border-[#ff1493]/70 focus:bg-white'
+                          : 'bg-slate-100 border-slate-200 focus:border-[#ff1493]/70 focus:bg-white'
                     }`}
                     autoFocus
                   />
@@ -292,18 +334,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDark, onBackTo
                       initial={{ x: -6 }}
                       animate={{ x: [0, -6, 6, -6, 6, 0] }}
                       transition={{ duration: 0.4 }}
-                      className="absolute right-3 top-3.5 text-red-500"
+                      className="absolute right-3 bottom-3 text-red-500"
                     >
-                      <AlertTriangle size={20} />
+                      <AlertTriangle size={18} />
                     </motion.div>
                   )}
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-xl bg-pink-gradient text-white font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-transform shadow-lg shadow-pink-500/10 flex items-center justify-center gap-2 cursor-pointer"
+                  disabled={isLoggingIn}
+                  className="w-full py-3 rounded-xl bg-pink-gradient text-white font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 shadow-lg shadow-pink-500/10 flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  Verify Access
+                  {isLoggingIn ? 'Verifying...' : 'Verify Access'}
                 </button>
               </form>
 
