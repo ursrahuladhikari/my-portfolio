@@ -20,9 +20,17 @@ import {
   Shield,
   Layers,
   BarChart3,
-  Workflow
+  Workflow,
+  Instagram,
+  User,
+  Briefcase
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Lenis from "lenis";
+import { CertificationSection } from "./components/Certification/CertificationSection";
+import { PageGraphOverlay } from "./components/PageGraphOverlay";
+import { Freelance } from "./pages/Freelance";
+import { AdminDashboard } from "./pages/AdminDashboard";
 
 const TYPEWRITER_PHRASES = [
   "Elevating Decisions via Data.",
@@ -767,6 +775,247 @@ const ParticleCanvas = () => {
   );
 };
 
+const WavyLinesCanvas = () => {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+    let width = 0;
+    let height = 0;
+
+    const resize = () => {
+      width = canvas.width = canvas.parentElement.offsetWidth;
+      height = canvas.height = canvas.parentElement.offsetHeight;
+    };
+    resize();
+
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas.parentElement);
+
+    // Wavy line parameters
+    const lines = [
+      {
+        yRatio: 0.22,
+        amplitude: 28,
+        frequency: 0.0035,
+        speed: 3,
+        lengthRatio: 0.4,
+        color: '6, 182, 212',
+        glowColor: '#06b6d4',
+        lineWidth: 1.8,
+        phase: 0,
+        centerX: 0
+      },
+      {
+        yRatio: 0.48,
+        amplitude: 34,
+        frequency: 0.0028,
+        speed: 4,
+        lengthRatio: 0.5,
+        color: '167, 139, 250',
+        glowColor: '#a78bfa',
+        lineWidth: 1.5,
+        phase: Math.PI / 3,
+        centerX: 0
+      },
+      {
+        yRatio: 0.58,
+        amplitude: 22,
+        frequency: 0.0042,
+        speed: 5,
+        lengthRatio: 0.35,
+        color: '255, 20, 147',
+        glowColor: '#ff1493',
+        lineWidth: 1.2,
+        phase: Math.PI / 1.5,
+        centerX: 0
+      },
+      {
+        yRatio: 0.82,
+        amplitude: 26,
+        frequency: 0.003,
+        speed: 3.5,
+        lengthRatio: 0.45,
+        color: '34, 211, 238',
+        glowColor: '#22d3ee',
+        lineWidth: 2.0,
+        phase: Math.PI / 2,
+        centerX: 0
+      }
+    ];
+
+    lines.forEach(line => {
+      line.centerX = -Math.random() * 1000 - 300;
+    });
+
+    const draw = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      lines.forEach(line => {
+        line.centerX += line.speed;
+        line.phase += 0.02;
+
+        const segmentLength = width * line.lengthRatio;
+
+        if (line.centerX - segmentLength > width) {
+          line.centerX = -segmentLength - (Math.random() * 800 + 200);
+        }
+
+        const centerY = height * line.yRatio;
+        const startX = Math.max(0, line.centerX - segmentLength);
+        const endX = Math.min(width, line.centerX + segmentLength);
+
+        if (startX >= width || endX <= 0) return;
+
+        ctx.beginPath();
+        let firstPoint = true;
+        for (let x = startX; x <= endX; x += 3) {
+          const distFromCenter = Math.abs(x - line.centerX);
+          const envelope = Math.max(0, 1 - (distFromCenter / segmentLength));
+          const smoothEnvelope = Math.sin(envelope * Math.PI / 2);
+          const y = centerY + Math.sin(x * line.frequency - line.phase) * line.amplitude * smoothEnvelope;
+
+          if (firstPoint) {
+            ctx.moveTo(x, y);
+            firstPoint = false;
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+
+        const grad = ctx.createLinearGradient(
+          line.centerX - segmentLength, 0,
+          line.centerX + segmentLength, 0
+        );
+        grad.addColorStop(0, `rgba(${line.color}, 0)`);
+        grad.addColorStop(0.5, `rgba(${line.color}, 0.8)`);
+        grad.addColorStop(1, `rgba(${line.color}, 0)`);
+
+        ctx.shadowColor = line.glowColor;
+        ctx.shadowBlur = 12;
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = line.lineWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+      });
+
+      ctx.shadowBlur = 0;
+      animationFrameId = requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      ro.disconnect();
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      style={{ zIndex: 1, mixBlendMode: 'screen' }}
+    />
+  );
+};
+
+// Debris particle animation overlay for the submerged profile photo
+const AboutDebrisCanvas = () => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animId: number;
+    let W = (canvas.width = 256);
+    let H = (canvas.height = 256);
+
+    const resize = () => {
+      if (!canvas || !canvas.parentElement) return;
+      W = canvas.width = canvas.parentElement.offsetWidth;
+      H = canvas.height = canvas.parentElement.offsetHeight;
+    };
+    resize();
+
+    const particles: {
+      x: number;
+      y: number;
+      size: number;
+      speedY: number;
+      speedX: number;
+      opacity: number;
+      color: string;
+    }[] = [];
+
+    const particleColors = [
+      'rgba(6, 182, 212, ', // Cyan
+      'rgba(167, 139, 250, ', // Purple
+      'rgba(255, 20, 147, ', // Pink
+    ];
+
+    const createParticle = (init = false) => {
+      return {
+        x: Math.random() * W,
+        y: init ? Math.random() * H : H + 10,
+        size: Math.random() * 2.2 + 0.5,
+        speedY: -(Math.random() * 0.7 + 0.2),
+        speedX: (Math.random() - 0.5) * 0.3,
+        opacity: Math.random() * 0.4 + 0.1,
+        color: particleColors[Math.floor(Math.random() * particleColors.length)],
+      };
+    };
+
+    for (let i = 0; i < 20; i++) {
+      particles.push(createParticle(true));
+    }
+
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H);
+
+      particles.forEach((p, idx) => {
+        p.y += p.speedY;
+        p.x += p.speedX;
+
+        // Respawn if off top
+        if (p.y < -10) {
+          particles[idx] = createParticle(false);
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color + p.opacity + ')';
+        ctx.shadowColor = p.color.includes('255') ? '#ff1493' : '#06b6d4';
+        ctx.shadowBlur = 4;
+        ctx.fill();
+      });
+      ctx.shadowBlur = 0;
+
+      animId = requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    return () => {
+      cancelAnimationFrame(animId);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none z-30"
+    />
+  );
+};
+
 // ── AiEcosystem: Futuristic orbital node map — all interactions inside canvas ──
 const NODE_POSITIONS = [
   { angle: -90  }, // 0 AI Assistants
@@ -784,6 +1033,7 @@ const AiEcosystem = ({ categories, dark }) => {
   const [openIdx, setOpenIdx] = React.useState(null);
   const [activeIdx, setActiveIdx] = React.useState(0);
   const [frameWidth, setFrameWidth] = React.useState(0);
+  const [frameHeight, setFrameHeight] = React.useState(0);
 
   // Escape to close
   React.useEffect(() => {
@@ -796,9 +1046,12 @@ const AiEcosystem = ({ categories, dark }) => {
   React.useEffect(() => {
     const frame = frameRef.current;
     if (!frame) return;
-    const updateWidth = () => setFrameWidth(frame.offsetWidth);
-    updateWidth();
-    const ro = new ResizeObserver(updateWidth);
+    const updateDimensions = () => {
+      setFrameWidth(frame.offsetWidth);
+      setFrameHeight(frame.offsetHeight);
+    };
+    updateDimensions();
+    const ro = new ResizeObserver(updateDimensions);
     ro.observe(frame);
     return () => ro.disconnect();
   }, []);
@@ -867,74 +1120,89 @@ const AiEcosystem = ({ categories, dark }) => {
       ))}
 
       {/* ── SVG connection lines ── */}
-      <div className="absolute inset-0 pointer-events-none" style={{zIndex:1}}>
-        {NODE_POSITIONS.map((pos, i) => {
-          const rad = deg2rad(pos.angle);
-          const ux = Math.cos(rad);
-          const uy = Math.sin(rad);
-          const sx = CORE_LINE_R * ux;
-          const sy = CORE_LINE_R * uy;
-          const nx = ORBIT_R * ux;
-          const ny = ORBIT_R * uy;
-          const lineLength = ORBIT_R - CORE_LINE_R - NODE_LINE_R;
-          const isAct = i === activeTab;
-          const dimmed = isExpanded && !isAct;
-          const color = categories[i].color;
-          return (
-            <React.Fragment key={i}>
-              {isAct && (
-                <motion.div
-                  className="absolute rounded-full"
-                  style={{
-                    left:`calc(50% + ${nx}px)`,
-                    top:`calc(50% + ${ny}px + ${ORBIT_Y_OFFSET}px)`,
-                    width:NODE_SIZE + 4,
-                    height:NODE_SIZE + 4,
-                    border:`1px solid ${color}`,
-                    transform:'translate(-50%,-50%)',
-                  }}
-                  initial={{scale:1,opacity:0.8}} animate={{scale:1.63,opacity:0}}
-                  transition={{duration:1.4,repeat:Infinity,ease:'easeOut'}}
-                />
-              )}
-              <motion.div
-                className="absolute"
-                style={{
-                  left:`calc(50% + ${sx}px)`,
-                  top:`calc(50% + ${sy}px + ${ORBIT_Y_OFFSET}px)`,
-                  width:lineLength,
-                  height:isAct ? 2 : 1,
-                  transform:`rotate(${pos.angle}deg)`,
-                  transformOrigin:'left center',
-                  background:isAct
-                    ? color
-                    : `repeating-linear-gradient(90deg, ${color} 0 6px, transparent 6px 11px)`,
-                  boxShadow:isAct ? `0 0 14px ${color}` : 'none',
-                }}
-                animate={{ opacity: dimmed ? 0.04 : isAct ? [0.55,1,0.55] : 0.22 }}
-                transition={{duration:2,repeat:isAct?Infinity:0,ease:'easeInOut'}}
-              >
+      {frameWidth > 0 && (
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
+          {NODE_POSITIONS.map((pos, i) => {
+            const rad = deg2rad(pos.angle);
+            const ux = Math.cos(rad);
+            const uy = Math.sin(rad);
+            
+            const cx = frameWidth / 2;
+            const cy = (frameHeight || FRAME_MIN_HEIGHT) / 2 + ORBIT_Y_OFFSET;
+            
+            const x1 = cx + CORE_LINE_R * ux;
+            const y1 = cy + CORE_LINE_R * uy;
+            const x2 = cx + (ORBIT_R - NODE_LINE_R) * ux;
+            const y2 = cy + (ORBIT_R - NODE_LINE_R) * uy;
+            
+            const isAct = i === activeTab;
+            const dimmed = isExpanded && !isAct;
+            const color = categories[i].color;
+            
+            return (
+              <g key={i}>
+                {/* Active node pulsing outline ripple */}
                 {isAct && (
-                  <motion.span
-                    className="absolute rounded-full"
-                    style={{
-                      left:0,
-                      top:'50%',
-                      width:8,
-                      height:8,
-                      background:color,
-                      boxShadow:`0 0 14px ${color}`,
-                      transform:'translate(-50%,-50%)',
+                  <motion.circle
+                    cx={x2}
+                    cy={y2}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={1}
+                    animate={{
+                      r: [(NODE_SIZE + 4) / 2, ((NODE_SIZE + 4) / 2) * 1.63],
+                      opacity: [0.8, 0],
                     }}
-                    animate={{ x:[0,lineLength,0] }}
-                    transition={{duration:2,repeat:Infinity,ease:'linear'}}
+                    transition={{
+                      duration: 1.4,
+                      repeat: Infinity,
+                      ease: 'easeOut',
+                    }}
                   />
                 )}
-              </motion.div>
-            </React.Fragment>
-          );
-        })}
-      </div>
+                
+                {/* Connection line */}
+                <motion.line
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke={color}
+                  strokeWidth={isAct ? 2 : 1}
+                  strokeDasharray={isAct ? undefined : '6, 5'}
+                  style={{
+                    filter: isAct ? `drop-shadow(0 0 4px ${color})` : 'none',
+                  }}
+                  animate={{
+                    opacity: dimmed ? 0.04 : isAct ? 0.9 : 0.22,
+                  }}
+                  transition={{ duration: 0.3 }}
+                />
+                
+                {/* Active moving dot along the line */}
+                {isAct && (
+                  <motion.circle
+                    r={4}
+                    fill={color}
+                    style={{
+                      filter: `drop-shadow(0 0 6px ${color})`,
+                    }}
+                    animate={{
+                      cx: [x1, x2, x1],
+                      cy: [y1, y2, y1],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: 'linear',
+                    }}
+                  />
+                )}
+              </g>
+            );
+          })}
+        </svg>
+      )}
 
       {/* ── AI Core (shrinks when panel is open) ── */}
       <motion.div className="absolute" style={{left:'50%',top:`calc(50% + ${ORBIT_Y_OFFSET}px)`,zIndex:10}}
@@ -1146,6 +1414,8 @@ const AiEcosystem = ({ categories, dark }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Data for certifications has been moved to src/data/certifications.ts
+
 
 const App = () => {
   const [dark, setDark] = useState(true);
@@ -1156,9 +1426,55 @@ const App = () => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [showFullJourney, setShowFullJourney] = useState(false);
-  const [showFullCerts, setShowFullCerts] = useState(false);
   const [cookieConsent, setCookieConsent] = useState(null);
   const skillsRef = useRef(null);
+  const [page, setPage] = useState('home');
+
+  // Hash-based router
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash === '#/freelance' || hash === '#freelance') {
+        setPage('freelance');
+        window.scrollTo(0, 0);
+      } else if (hash === '#/admin' || hash === '#admin' || hash === '#/dashboard' || hash === '#dashboard') {
+        setPage('admin');
+        window.scrollTo(0, 0);
+      } else {
+        setPage('home');
+      }
+    };
+
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Lenis Smooth Scroll Initialization
+  useEffect(() => {
+    let lenisInst: any;
+    try {
+      const LenisConstructor = (Lenis && (Lenis as any).default) || Lenis;
+      if (typeof LenisConstructor === 'function') {
+        lenisInst = new LenisConstructor({
+          duration: 1.2,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        });
+
+        const raf = (time: number) => {
+          lenisInst.raf(time);
+          requestAnimationFrame(raf);
+        };
+        requestAnimationFrame(raf);
+      }
+    } catch (e) {
+      console.warn("Lenis smooth scroll failed to initialize:", e);
+    }
+
+    return () => {
+      if (lenisInst) lenisInst.destroy();
+    };
+  }, []);
 
   // Cookie Logic
   useEffect(() => {
@@ -1252,11 +1568,24 @@ const App = () => {
   const scrollToId = (id) => {
     setDrawerOpen(false);
     if (!id) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (window.location.hash !== '' && window.location.hash !== '#/') {
+        window.location.hash = '#/';
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
       return;
     }
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    
+    if (window.location.hash !== '' && window.location.hash !== '#/') {
+      window.location.hash = '#/';
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
+    } else {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   const handlePrint = () => {
@@ -1521,12 +1850,19 @@ const App = () => {
   ];
 
   const tools = [
-    { name: 'Power BI', role: 'Dashboard development, DAX, Power Query', exp: '3+ yrs', level: 95, icon: <PieChart className="w-5 h-5" /> },
-    { name: 'SQL', role: 'Complex queries, Joins, BigQuery, Oracle', exp: '3 yrs', level: 90, icon: <Database className="w-5 h-5" /> },
-    { name: 'Python', role: 'ETL, Pandas, NumPy, API integration', exp: '3 yrs', level: 88, icon: <Terminal className="w-5 h-5" /> },
-    { name: 'Excel & VBA', role: 'Macros, Pivot tables, Automation', exp: '4 yrs', level: 97, icon: <FileText className="w-5 h-5" /> },
-    { name: 'Machine Learning', role: 'TensorFlow, OpenCV, Scikit-learn', exp: '2+ yrs', level: 70, icon: <BrainCircuit className="w-5 h-5" /> }
+    { name: 'Power BI', role: 'Dashboard development, DAX, Power Query, Gateway & Service', exp: '3.5+ yrs', level: 95, icon: <PieChart className="w-5 h-5" /> },
+    { name: 'SQL & Databases', role: 'Complex queries, Joins, CTEs, BigQuery, Oracle, MongoDB', exp: '4+ yrs', level: 95, icon: <Database className="w-5 h-5" /> },
+    { name: 'Programming (Python, C/C++)', role: 'Data structures, scripting, ETL, automation pipelines', exp: '4 yrs', level: 90, icon: <Terminal className="w-5 h-5" /> },
+    { name: 'Excel & VBA', role: 'Macros, Pivot tables, CRM/Inventory Automation', exp: '4 yrs', level: 97, icon: <FileText className="w-5 h-5" /> },
+    { name: 'Tableau', role: 'Interactive dashboards, visual analytics, storytelling', exp: '2.5 yrs', level: 86, icon: <BarChart3 className="w-5 h-5" /> },
+    { name: 'Data Modelling & ETL', role: 'Star Schema, Fact/Dimension Tables, Power Query (M)', exp: '3.5 yrs', level: 92, icon: <Layers className="w-5 h-5" /> },
+    { name: 'Machine Learning & AI', role: 'TensorFlow, OpenCV, R, Predictive Modelling', exp: '2+ yrs', level: 75, icon: <BrainCircuit className="w-5 h-5" /> },
+    { name: 'Git & GitHub', role: 'Version control, collaborative workflows, CI/CD pipelines', exp: '3 yrs', level: 85, icon: <Workflow className="w-5 h-5" /> }
   ];
+
+  if (page === 'admin') {
+    return <AdminDashboard isDark={dark} onBackToHome={() => { window.location.hash = '#/'; }} />;
+  }
 
   return (
     <div className={`min-h-screen text-slate-900 dark:text-slate-100 transition-colors duration-300 ${dark ? 'bg-[#0f172a] code-bg-dark' : 'bg-[#fafafa]'}`}>
@@ -1559,6 +1895,8 @@ const App = () => {
       )}
       {/* Full-page mouse-reactive particle canvas */}
       <ParticleCanvas />
+      {/* Scroll-synchronized hover-responsive background grid */}
+      <PageGraphOverlay dark={dark} />
       <style>{`
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .fade-up { animation: fadeUp 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
@@ -1591,7 +1929,7 @@ const App = () => {
               </button>
             </div>
             <nav className="space-y-4 font-mono text-sm">
-              {['Home', 'Projects', 'Resume', 'Tools', 'Freelance', 'Contact'].map(item => (
+              {['Home', 'About', 'Projects', 'Resume', 'Tools'].map(item => (
                 <button
                   key={item}
                   onClick={() => scrollToId(item === 'Home' ? '' : item.toLowerCase())}
@@ -1600,6 +1938,12 @@ const App = () => {
                   <span className="text-[#db2777]">/</span> {item.toLowerCase()}
                 </button>
               ))}
+              <button
+                onClick={() => { window.location.hash = '#/freelance'; setDrawerOpen(false); }}
+                className="w-full text-left py-3 px-4 rounded-lg hover:bg-pink-50 dark:hover:bg-pink-900/20 hover:text-[#ff1493] transition-colors font-medium"
+              >
+                <span className="text-[#db2777]">/</span> freelance
+              </button>
             </nav>
           </div>
         </aside>
@@ -1631,7 +1975,7 @@ const App = () => {
                     background: 'linear-gradient(to top, #cc1010, #ff4444)',
                     boxShadow: '0 0 3px rgba(220,30,30,0.5)',
                     '--dur': b.dur, '--delay': b.delay,
-                  }} />
+                  } as any} />
                 ))}
               </div>
 
@@ -1650,7 +1994,7 @@ const App = () => {
                     background: 'linear-gradient(to top, #0066cc, #22d3ee)',
                     boxShadow: '0 0 3px rgba(34,211,238,0.4)',
                     '--dur': b.dur, '--delay': b.delay,
-                  }} />
+                  } as any} />
                 ))}
               </div>
             </div>
@@ -1676,7 +2020,7 @@ const App = () => {
 
           <nav className="flex items-center gap-2 sm:gap-6">
             <ul className="hidden md:flex items-center gap-8 font-mono text-sm">
-              {['Home', 'Projects', 'Resume', 'Tools'].map(item => (
+              {['Home', 'About', 'Projects', 'Resume', 'Tools'].map(item => (
                 <li key={item}>
                   <button
                     onClick={() => scrollToId(item === 'Home' ? '' : item.toLowerCase())}
@@ -1691,7 +2035,7 @@ const App = () => {
                   More <ChevronRight size={14} className="rotate-90 group-hover:-rotate-90 transition-transform" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-36 bg-white dark:bg-slate-800 shadow-xl rounded-lg overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all border border-[#ff1493]/10">
-                  <button onClick={() => scrollToId('freelance')} className="block w-full text-left px-5 py-3 text-slate-700 dark:text-slate-300 hover:bg-pink-50 dark:hover:bg-slate-700 hover:text-[#ff1493] transition-colors font-medium">
+                  <button onClick={() => { window.location.hash = '#/freelance'; }} className="block w-full text-left px-5 py-3 text-slate-700 dark:text-slate-300 hover:bg-pink-50 dark:hover:bg-slate-700 hover:text-[#ff1493] transition-colors font-medium">
                     Freelance
                   </button>
                 </div>
@@ -1711,8 +2055,12 @@ const App = () => {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="pt-32 pb-24 md:pt-40 md:pb-32 lg:pt-20 lg:pb-0 lg:min-h-screen flex flex-col justify-center px-6 overflow-hidden relative">
+      {page === 'freelance' ? (
+        <Freelance isDark={dark} onBackToHome={() => { window.location.hash = '#/'; }} />
+      ) : (
+        <>
+          {/* Hero */}
+          <section className="pt-32 pb-24 md:pt-40 md:pb-32 lg:pt-20 lg:pb-0 lg:min-h-screen flex flex-col justify-center px-6 overflow-hidden relative">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#ff1493]/10 blur-[120px] rounded-full pointer-events-none" />
 
         <div className="max-w-6xl mx-auto w-full relative z-10">
@@ -2109,8 +2457,8 @@ const App = () => {
       </section>
 
       {/* Generative AI & Automation Tools — AI Ecosystem */}
-      <section id="ai-tools" className="py-24 px-4 max-w-7xl mx-auto">
-        <div className="text-center mb-12">
+      <section id="ai-tools" className="py-24 px-0 w-full overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 text-center mb-12">
           <div className="mono text-[#ff1493] text-sm mb-2">// Modern Workflow</div>
           <h2 className="text-4xl md:text-5xl font-black mb-4">Generative AI &amp; Automation Tools</h2>
           <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto text-base">
@@ -2205,188 +2553,415 @@ const App = () => {
             },
           ];
 
+          const iconTools3D = [
+            // Group 1: Coding & Development
+            { name: 'Python', icon: <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/python/python-original.svg" className="w-11 h-11 sm:w-13 sm:h-13 object-contain" alt="Python" />, glowColor: 'rgba(55, 115, 165, 0.35)' },
+            { name: 'VS Code', icon: <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vscode/vscode-original.svg" className="w-11 h-11 sm:w-13 sm:h-13 object-contain" alt="VS Code" />, glowColor: 'rgba(0, 122, 204, 0.35)' },
+            { name: 'Cursor', icon: <img src="https://cdn.simpleicons.org/cursor?viewbox=auto" className="w-11 h-11 sm:w-13 sm:h-13 object-contain dark:invert" alt="Cursor" />, glowColor: 'rgba(100, 100, 100, 0.35)' },
+            { name: 'Jupyter', icon: <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/jupyter/jupyter-original.svg" className="w-11 h-11 sm:w-13 sm:h-13 object-contain" alt="Jupyter" />, glowColor: 'rgba(243, 118, 38, 0.35)' },
+            { name: 'Google Colab', icon: <img src="https://cdn.simpleicons.org/googlecolab?viewbox=auto" className="w-11 h-11 sm:w-13 sm:h-13 object-contain" alt="Google Colab" />, glowColor: 'rgba(249, 115, 22, 0.35)' },
+
+            // Group 2: AI & Automation
+            { name: 'Antigravity', icon: (
+              <svg className="w-11 h-11 sm:w-13 sm:h-13" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 22C3 15 6 4 12 4s9 11 10 18h-3.5c-.8-5-2.5-12-6.5-12s-5.7 7-6.5 12H2z" fill="url(#antigravity-rainbow)" />
+                <defs>
+                  <linearGradient id="antigravity-rainbow" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#2563eb" />
+                    <stop offset="25%" stopColor="#10b981" />
+                    <stop offset="50%" stopColor="#f59e0b" />
+                    <stop offset="75%" stopColor="#ef4444" />
+                    <stop offset="100%" stopColor="#3b82f6" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            ), glowColor: 'rgba(59, 130, 246, 0.4)' },
+            { name: 'ChatGPT', icon: (
+              <svg className="w-11 h-11 sm:w-13 sm:h-13 text-[#10a37f]" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14.949 6.547a3.94 3.94 0 0 0-.348-3.273 4.11 4.11 0 0 0-4.4-1.934A4.1 4.1 0 0 0 8.423.2 4.15 4.15 0 0 0 6.305.086a4.1 4.1 0 0 0-1.891.948 4.04 4.04 0 0 0-1.158 1.753 4.1 4.1 0 0 0-1.563.679A4 4 0 0 0 .554 4.72a3.99 3.99 0 0 0 .502 4.731 3.94 3.94 0 0 0 .346 3.274 4.11 4.11 0 0 0 4.402 1.933c.382.425.852.764 1.377.995.526.231 1.095.35 1.67.346 1.78.002 3.358-1.132 3.901-2.804a4.1 4.1 0 0 0 1.563-.68 4 4 0 0 0 1.14-1.253 3.99 3.99 0 0 0-.506-4.716m-6.097 8.406a3.05 3.05 0 0 1-1.945-.694l.096-.054 3.23-1.838a.53.53 0 0 0 .265-.455v-4.49l1.366.778q.02.011.025.035v3.722c-.003 1.653-1.361 2.992-3.037 2.996m-6.53-2.75a2.95 2.95 0 0 1-.36-2.01l.095.057L5.29 12.09a.53.53 0 0 0 .527 0l3.949-2.246v1.555a.05.05 0 0 1-.022.041L6.473 13.3c-1.454.826-3.311.335-4.15-1.098m-.85-6.94A3.02 3.02 0 0 1 3.07 3.949v3.785a.51.51 0 0 0 .262.451l3.93 2.237-1.366.779a.05.05 0 0 1-.048 0L2.585 9.342a2.98 2.98 0 0 1-1.113-4.094zm11.216 2.571L8.747 5.576l1.362-.776a.05.05 0 0 1 .048 0l3.265 1.86a3 3 0 0 1 1.173 1.207 2.96 2.96 0 0 1-.27 3.2 3.05 3.05 0 0 1-1.36.997V8.279a.52.52 0 0 0-.276-.445m1.36-2.015-.097-.057-3.226-1.855a.53.53 0 0 0-.53 0L6.249 6.153V4.598a.04.04 0 0 1 .019-.04L9.533 2.7a3.07 3.07 0 0 1 3.257.139c.474.325.843.778 1.066 1.303.223.526.289 1.103.191 1.664zM5.503 8.575 4.139 7.8a.05.05 0 0 1-.026-.037V4.049c0-.57.166-1.127.476-1.607s.752-.864 1.275-1.105a3.08 3.08 0 0 1 .001.001z"/>
+              </svg>
+            ), glowColor: 'rgba(16, 163, 127, 0.35)' },
+            { name: 'Claude', icon: (
+              <svg className="w-11 h-11 sm:w-13 sm:h-13" viewBox="0 0 100 100" fill="#D97757" xmlns="http://www.w3.org/2000/svg">
+                <path d="m19.6 66.5 19.7-11 .3-1-.3-.5h-1l-3.3-.2-11.2-.3L14 53l-9.5-.5-2.4-.5L0 49l.2-1.5 2-1.3 2.9.2 6.3.5 9.5.6 6.9.4L38 49.1h1.6l.2-.7-.5-.4-.4-.4L29 41l-10.6-7-5.6-4.1-3-2-1.5-2-.6-4.2 2.7-3 3.7.3.9.2 3.7 2.9 8 6.1L37 36l1.5 1.2.6-.4.1-.3-.7-1.1L33 25l-6-10.4-2.7-4.3-.7-2.6c-.3-1-.4-2-.4-3l3-4.2L28 0l4.2.6L33.8 2l2.6 6 4.1 9.3L47 29.9l2 3.8 1 3.4.3 1h.7v-.5l.5-7.2 1-8.7 1-11.2.3-3.2 1.6-3.8 3-2L61 2.6l2 2.9-.3 1.8-1.1 7.7L59 27.1l-1.5 8.2h.9l1-1.1 4.1-5.4 6.9-8.6 3-3.5L77 13l2.3-1.8h4.3l3.1 4.7-1.4 4.9-4.4 5.6-3.7 4.7-5.3 7.1-3.2 5.7.3.4h.7l12-2.6 6.4-1.1 7.6-1.3 3.5 1.6.4 1.6-1.4 3.4-8.2 2-9.6 2-14.3 3.3-.2.1.2.3 6.4.6 2.8.2h6.8l12.6 1 3.3 2 1.9 2.7-.3 2-5.1 2.6-6.8-1.6-16-3.8-5.4-1.3h-.8v.4l4.6 4.5 8.3 7.5L89 80.1l.5 2.4-1.3 2-1.4-.2-9.2-7-3.6-3-8-6.8h-.5v.7l1.8 2.7 9.8 14.7.5 4.5-.7 1.4-2.6 1-2.7-.6-5.8-8-6-9-4.7-8.2-.5.4-2.9 30.2-1.3 1.5-3 1.2-2.5-2-1.4-3 1.4-6.2 1.6-8 1.3-6.4 1.2-7.9.7-2.6v-.2H49L43 72l-9 12.3-7.2 7.6-1.7.7-3-1.5.3-2.8L24 86l10-12.8 6-7.9 4-4.6-.1-.5h-.3L17.2 77.4l-4.7.6-2-2 .2-3 1-1 8-5.5Z" />
+              </svg>
+            ), glowColor: 'rgba(217, 119, 87, 0.35)' },
+            { name: 'n8n', icon: <img src="https://cdn.simpleicons.org/n8n?viewbox=auto" className="w-11 h-11 sm:w-13 sm:h-13 object-contain" alt="n8n" />, glowColor: 'rgba(255, 110, 78, 0.35)' },
+
+            // Group 3: Data Analysis & Business Intelligence
+            { name: 'Power BI', icon: (
+              <svg className="w-11 h-11 sm:w-13 sm:h-13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1.5" y="13.5" width="5" height="10.5" rx="1.5" fill="url(#pbi-left)" />
+                <rect x="8" y="7" width="5" height="17" rx="1.5" fill="url(#pbi-middle)" />
+                <rect x="14.5" y="0.5" width="5" height="23.5" rx="1.5" fill="url(#pbi-right)" />
+                <defs>
+                  <linearGradient id="pbi-left" x1="4" y1="13.5" x2="4" y2="24" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#FFE082" />
+                    <stop offset="100%" stopColor="#F2C811" />
+                  </linearGradient>
+                  <linearGradient id="pbi-middle" x1="10.5" y1="7" x2="10.5" y2="24" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#F5B041" />
+                    <stop offset="100%" stopColor="#F29F05" />
+                  </linearGradient>
+                  <linearGradient id="pbi-right" x1="17" y1="0.5" x2="17" y2="24" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#F0B27A" />
+                    <stop offset="100%" stopColor="#D97706" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            ), glowColor: 'rgba(242, 191, 0, 0.35)' },
+            { name: 'Tableau', icon: (
+              <svg className="w-11 h-11 sm:w-13 sm:h-13" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                {/* 1. Center Cross (Red/Orange, Large) */}
+                <rect x="45" y="25" width="10" height="50" rx="1.5" fill="#E31815" />
+                <rect x="25" y="45" width="50" height="10" rx="1.5" fill="#E31815" />
+
+                {/* 2. Top Cross (Orange, Medium) */}
+                <rect x="47" y="5" width="6" height="20" rx="1" fill="#F29F05" />
+                <rect x="40" y="12" width="20" height="6" rx="1" fill="#F29F05" />
+
+                {/* 3. Bottom Cross (Orange-Red, Medium) */}
+                <rect x="47" y="75" width="6" height="20" rx="1" fill="#E31815" />
+                <rect x="40" y="82" width="20" height="6" rx="1" fill="#E31815" />
+
+                {/* 4. Left Cross (Blue, Medium) */}
+                <rect x="12" y="40" width="6" height="20" rx="1" fill="#1F77B4" />
+                <rect x="5" y="47" width="20" height="6" rx="1" fill="#1F77B4" />
+
+                {/* 5. Right Cross (Blue, Medium) */}
+                <rect x="82" y="40" width="6" height="20" rx="1" fill="#1F77B4" />
+                <rect x="75" y="47" width="20" height="6" rx="1" fill="#1F77B4" />
+
+                {/* 6. Top-Left Cross (Green, Small) */}
+                <rect x="23" y="20" width="4" height="14" rx="0.8" fill="#59A14F" />
+                <rect x="18" y="25" width="14" height="4" rx="0.8" fill="#59A14F" />
+
+                {/* 7. Top-Right Cross (Teal, Small) */}
+                <rect x="73" y="20" width="4" height="14" rx="0.8" fill="#499894" />
+                <rect x="68" y="25" width="14" height="4" rx="0.8" fill="#499894" />
+
+                {/* 8. Bottom-Left Cross (Light Green, Small) */}
+                <rect x="23" y="66" width="4" height="14" rx="0.8" fill="#8CD17D" />
+                <rect x="18" y="71" width="14" height="4" rx="0.8" fill="#8CD17D" />
+
+                {/* 9. Bottom-Right Cross (Light Orange, Small) */}
+                <rect x="73" y="66" width="4" height="14" rx="0.8" fill="#F28E2B" />
+                <rect x="68" y="71" width="14" height="4" rx="0.8" fill="#F28E2B" />
+              </svg>
+            ), glowColor: 'rgba(227, 24, 55, 0.3)' },
+            { name: 'Excel', icon: (
+              <svg className="w-11 h-11 sm:w-13 sm:h-13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="2" width="20" height="20" rx="3" fill="#107C41" />
+                <path d="M7 6h10v2H7zM7 11h10v2H7zM7 16h10v2H7z" fill="#FFFFFF" opacity="0.25" />
+                <path d="M8.5 7.5l7 9M15.5 7.5l-7 9" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
+              </svg>
+            ), glowColor: 'rgba(16, 124, 65, 0.35)' },
+            { name: 'Adobe Analytics', icon: (
+              <svg className="w-11 h-11 sm:w-13 sm:h-13" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L1.5 22h4.8l2.2-4.8h7l2.2 4.8h4.8L12 2zm0 6.5l2.5 5.5h-5L12 8.5z" fill="url(#adobe-a-grad)" filter="drop-shadow(0 2px 5px rgba(255, 0, 0, 0.4))" />
+                <defs>
+                  <linearGradient id="adobe-a-grad" x1="0" y1="2" x2="24" y2="22">
+                    <stop offset="0%" stopColor="#FF4B4B" />
+                    <stop offset="100%" stopColor="#FF0000" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            ), glowColor: 'rgba(255, 0, 0, 0.35)' },
+            { name: 'Google Analytics', icon: (
+              <svg className="w-11 h-11 sm:w-13 sm:h-13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 18h3v-4H4v4zm5 0h3V7H9v11zm5 0h3v-7h-3v7zm5 0h3V3h-3v15z" fill="url(#ga-grad)" />
+                <defs>
+                  <linearGradient id="ga-grad" x1="13.5" y1="3" x2="13.5" y2="18" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#F9AB00" />
+                    <stop offset="100%" stopColor="#E65100" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            ), glowColor: 'rgba(249, 171, 0, 0.35)' },
+
+            // Group 4: Productivity & Collaboration
+            { name: 'Notion', icon: <img src="https://cdn.simpleicons.org/notion?viewbox=auto" className="w-11 h-11 sm:w-13 sm:h-13 object-contain dark:invert" alt="Notion" />, glowColor: 'rgba(150, 150, 150, 0.2)' },
+
+            // Group 5: Creative & Design Tools
+            { name: 'Canva', icon: <img src="https://www.vectorlogo.zone/logos/canva/canva-icon.svg" className="w-11 h-11 sm:w-13 sm:h-13 object-contain" alt="Canva" />, glowColor: 'rgba(0, 196, 204, 0.35)' },
+            { name: 'Photoshop', icon: (
+              <svg className="w-11 h-11 sm:w-13 sm:h-13" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <text x="50%" y="60%" dominantBaseline="middle" textAnchor="middle" fill="url(#ps-text-grad)" fontSize="16" fontWeight="900" fontFamily="system-ui, sans-serif" filter="drop-shadow(0 2px 4px rgba(0, 200, 255, 0.4))">Ps</text>
+                <defs>
+                  <linearGradient id="ps-text-grad" x1="0" y1="0" x2="24" y2="24">
+                    <stop offset="0%" stopColor="#80E5FF" />
+                    <stop offset="100%" stopColor="#007BFF" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            ), glowColor: 'rgba(0, 200, 255, 0.35)' },
+            { name: 'Illustrator', icon: (
+              <svg className="w-11 h-11 sm:w-13 sm:h-13" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <text x="50%" y="60%" dominantBaseline="middle" textAnchor="middle" fill="url(#ai-text-grad)" fontSize="16" fontWeight="900" fontFamily="system-ui, sans-serif" filter="drop-shadow(0 2px 4px rgba(255, 154, 0, 0.4))">Ai</text>
+                <defs>
+                  <linearGradient id="ai-text-grad" x1="0" y1="0" x2="24" y2="24">
+                    <stop offset="0%" stopColor="#FFE082" />
+                    <stop offset="100%" stopColor="#FF9A00" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            ), glowColor: 'rgba(255, 154, 0, 0.35)' },
+            { name: 'Lightroom', icon: (
+              <svg className="w-11 h-11 sm:w-13 sm:h-13" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <text x="50%" y="60%" dominantBaseline="middle" textAnchor="middle" fill="url(#lr-text-grad)" fontSize="16" fontWeight="900" fontFamily="system-ui, sans-serif" filter="drop-shadow(0 2px 4px rgba(49, 168, 255, 0.4))">Lr</text>
+                <defs>
+                  <linearGradient id="lr-text-grad" x1="0" y1="0" x2="24" y2="24">
+                    <stop offset="0%" stopColor="#B3E5FC" />
+                    <stop offset="100%" stopColor="#31A8FF" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            ), glowColor: 'rgba(49, 168, 255, 0.35)' },
+            { name: 'Firefly', icon: (
+              <svg className="w-11 h-11 sm:w-13 sm:h-13" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <text x="50%" y="60%" dominantBaseline="middle" textAnchor="middle" fill="url(#ff-text-grad)" fontSize="16" fontWeight="900" fontFamily="system-ui, sans-serif" filter="drop-shadow(0 2px 4px rgba(255, 0, 122, 0.4))">Ff</text>
+                <defs>
+                  <linearGradient id="ff-text-grad" x1="0" y1="0" x2="24" y2="24">
+                    <stop offset="0%" stopColor="#FF0F00" />
+                    <stop offset="40%" stopColor="#FF007A" />
+                    <stop offset="100%" stopColor="#7B00FF" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            ), glowColor: 'rgba(255, 15, 0, 0.35)' },
+            { name: 'CorelDRAW', icon: (
+              <svg className="w-11 h-11 sm:w-13 sm:h-13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C7.58 2 4 5.58 4 10c0 3.2 2.5 6.2 5 8.5v1.5h6v-1.5c2.5-2.3 5-5.3 5-8.5 0-4.42-3.58-8-8-8z" fill="url(#corel-grad)" />
+                <rect x="10.5" y="21.5" width="3" height="2" rx="0.5" fill="#7A7A7A" />
+                <line x1="9.5" y1="20" x2="11" y2="21.5" stroke="#7A7A7A" strokeWidth="0.5" />
+                <line x1="14.5" y1="20" x2="13" y2="21.5" stroke="#7A7A7A" strokeWidth="0.5" />
+                <defs>
+                  <linearGradient id="corel-grad" x1="12" y1="2" x2="12" y2="20" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#8BEB34" />
+                    <stop offset="100%" stopColor="#0E932E" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            ), glowColor: 'rgba(14, 147, 46, 0.35)' }
+          ];
+
           return (
             <div className="w-full flex flex-col items-center">
-              {/* ── AI Ecosystem Canvas ── */}
-              <AiEcosystem categories={toolCategories} dark={dark} />
+              {/* ── AI Ecosystem Canvas (centered inside max-w-7xl) ── */}
+              <div className="max-w-7xl mx-auto px-4 w-full flex justify-center">
+                <AiEcosystem categories={toolCategories} dark={dark} />
+              </div>
+
+              {/* ── 3D Icon Marquee (full width, edge-to-edge) ── */}
+              <div className="w-full mt-6 overflow-hidden flex py-6 whitespace-nowrap relative">
+                {/* Soft gradient masks on left and right edges for a premium fading look */}
+                <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-r from-[#fafafa] dark:from-[#0f172a] to-transparent z-10 pointer-events-none" />
+                <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-l from-[#fafafa] dark:from-[#0f172a] to-transparent z-10 pointer-events-none" />
+
+                <div className="flex animate-marquee min-w-max">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex items-center">
+                      {iconTools3D.map((tool, j) => (
+                        <div key={`${i}-${j}`} className="relative group mx-3.5 sm:mx-5 flex items-center justify-center">
+                          {/* Glow behind the icon on hover */}
+                          <div 
+                            className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 blur-xl transition-all duration-500 pointer-events-none w-20 h-20"
+                            style={{ background: `radial-gradient(circle, ${tool.glowColor} 0%, transparent 70%)` }}
+                          />
+                          
+                          {/* The Icon itself, scaling and floating on hover */}
+                          <div className="relative z-10 transition-all duration-500 group-hover:scale-115 group-hover:-translate-y-2 cursor-pointer filter drop-shadow-md hover:drop-shadow-xl">
+                            {tool.icon}
+                          </div>
+                          
+                          {/* Tool Name Tooltip */}
+                          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded bg-slate-900/90 dark:bg-slate-800/90 text-[10px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap border border-white/10 z-20">
+                            {tool.name}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           );
         })()}
       </section>
 
+      {/* Certifications & Achievements Section */}
+      <CertificationSection />
 
-
-
-
-      {/* Certifications & Achievements */}
-
-      <section id="certifications" className="py-24 px-6 max-w-7xl mx-auto">
-        <div className="text-center mb-16 max-w-3xl mx-auto">
-          <div className="mono text-[#ff1493] text-sm mb-2">// Continuous Learning</div>
-          <h2 className="text-4xl md:text-5xl font-black mb-6">Certifications & Achievements</h2>
-          <p className="text-slate-800 dark:text-slate-400 text-lg leading-relaxed px-4 md:px-12 text-justify md:text-center">
-            I believe in lifelong learning — because the mind, like any muscle, evolves and strengthens with consistent effort. Through continuous exploration of data, tools, and emerging technologies, curiosity transforms into meaningful insights, driving growth, innovation, and real-world impact.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[
-            {
-              title: 'Oracle Cloud Infrastructure Certified Data Science Professional',
-              issuer: 'Oracle Learning',
-              period: 'Nov 2025 – Nov 2027',
-              skills: ['OCI', 'Machine Learning', 'Model Deployment', 'AutoML'],
-              link: 'https://catalog-education.oracle.com/ords/certview/sharebadge?id=6DEDAD566435634C9732610078A0BA14BB779CE71FB3B31FF44B09C321E4B35C'
-            },
-            {
-              title: 'Oracle Data Platform Certified Foundations Associate',
-              issuer: 'Oracle Learning',
-              period: 'Oct 2025 - Oct 2027',
-              skills: ['Cloud Data', 'Data Warehousing', 'Oracle Analytics'],
-              link: 'https://catalog-education.oracle.com/ords/certview/sharebadge?id=6DEDAD566435634C9732610078A0BA14F19D2E89DFF1FBB03C6F31B765090CC7'
-            },
-            {
-              title: 'Microsoft Power BI Data Analyst Professional Certificate',
-              issuer: 'Coursera, Microsoft',
-              period: 'Mar 2024 – Oct 2024',
-              skills: ['Power BI', 'DAX', 'Data Modeling', 'Power Query'],
-              link: 'https://www.coursera.org/account/accomplishments/professional-cert/MPN6DUW07SPF'
-            },
-            {
-              title: 'Google Data Analytics Professional Certificate',
-              issuer: 'Google (2023)',
-              period: 'Sep 2022 – Sep 2023',
-              skills: ['SQL', 'Tableau', 'R Programming', 'Data Cleaning'],
-              link: 'https://www.credly.com/badges/12d217ef-371f-4aa7-ab5f-b1453dbf0e45/linked_in_profile'
-            },
-            {
-              title: 'Generative AI for Business Intelligence (BI) Analysts',
-              issuer: 'SkillUp EdTech (2025)',
-              period: 'Jan 2025 – Mar 2025',
-              skills: ['GenAI', 'Prompt Engineering', 'BI Strategy'],
-              link: 'https://www.coursera.org/account/accomplishments/specialization/certificate/5UWTG1BH5HBB'
-            },
-            {
-              title: 'Generative AI for Data Scientists',
-              issuer: 'IBM, Coursera (2025)',
-              period: 'Sep 2024 – Dec 2024',
-              skills: ['LLMs', 'LangChain', 'AI Development'],
-              link: 'https://www.coursera.org/account/accomplishments/verify/2ZHC0E3DT17M'
-            },
-            {
-              title: 'Introduction to MongoDB',
-              issuer: 'MongoDB, Inc (2025)',
-              period: 'Mar 2025 – Apr 2025',
-              skills: ['NoSQL', 'Document Databases', 'Aggregation'],
-              link: 'https://www.coursera.org/account/accomplishments/verify/64OBEYY4E1BO'
-            },
-            {
-              title: 'IBM Applied Data Science Certificate',
-              issuer: 'IBM (2023)',
-              period: 'Aug 2022 – Jan 2023',
-              skills: ['Python', 'Data Analysis', 'Scikit-Learn'],
-              link: 'https://www.coursera.org/account/accomplishments/verify/KUG9KCFWU5CR'
-            },
-            {
-              title: 'Relational Database & Design Certification',
-              issuer: 'University of Colorado Boulder (2024)',
-              period: 'Oct 2024 – Dec 2024',
-              skills: ['SQL', 'Database Normalization', 'ER Modeling'],
-              link: '#'
-            },
-            {
-              title: 'Python for Everybody Specialization with Honours',
-              issuer: 'University of Michigan (2022)',
-              period: 'July 2022 – Mar 2023',
-              skills: ['Python', 'Data Structures', 'Web Scraping'],
-              link: 'https://www.coursera.org/account/accomplishments/verify/CXEVVGTE2ERM'
-            }
-          ].slice(0, showFullCerts ? undefined : 4).map((cert, idx) => (
-            <EvervaultCard key={idx}>
-              <div className="group p-6 flex flex-col justify-between min-h-[200px]">
-                <div>
-                  <h3 className="text-lg font-bold mb-3 text-slate-800 dark:text-slate-100 group-hover:text-[#ff1493] transition-colors pr-4">{cert.title}</h3>
-                  <div className="flex flex-wrap gap-1.5 mb-6">
-                    {cert.skills?.map((skill, sIdx) => (
-                      <span key={sIdx} className="text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200/80 bg-slate-100 dark:border-slate-600/50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 group-hover:border-[#ff1493]/30 group-hover:text-[#ff1493]/80 transition-colors">
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-auto pt-4 border-t border-slate-200/80 dark:border-slate-700/50">
-                  <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mono">{cert.issuer}</p>
-                  <div className="flex items-center gap-2">
-                    {cert.link && (
-                      <a href={cert.link} target="_blank" rel="noreferrer" className="text-xs font-bold text-white bg-pink-gradient px-3 py-1.5 rounded-full hover:scale-105 transition-transform shadow-sm whitespace-nowrap">
-                        Verify ↗
-                      </a>
-                    )}
-                    <span className="text-xs font-bold text-[#ff1493] bg-pink-500/10 px-3 py-1.5 rounded-full whitespace-nowrap border border-pink-500/20 shadow-sm">
-                      {cert.period}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </EvervaultCard>
-          ))}
-        </div>
-
-        <div className="mt-12 flex justify-center">
-          <button
-            onClick={() => setShowFullCerts(!showFullCerts)}
-            className="group flex items-center gap-2 px-6 py-3 rounded-full font-bold text-[#06b6d4] border border-[#06b6d4]/30 hover:border-[#ff1493]/50 hover:text-[#ff1493] transition-all bg-cyan-900/10 hover:bg-pink-900/10 dark:bg-cyan-900/20 dark:hover:bg-pink-900/20 shadow-sm"
-          >
-            {showFullCerts ? 'Show Less' : 'View Full Certifications'}
-            <ArrowRight size={18} className={`transition-transform duration-300 ${showFullCerts ? '-rotate-90' : 'group-hover:translate-x-1'}`} />
-          </button>
-        </div>
-      </section>
-
-      {/* Contact CTA */}
-      <section id="contact" className="py-24 px-6">
-        <div className="max-w-5xl mx-auto rounded-3xl bg-[#1e2530]/60 backdrop-blur-xl border border-slate-700/50 p-12 text-center text-white relative overflow-hidden shadow-2xl">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-900/20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/40 blur-3xl rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
-
-          <h2 className="text-4xl md:text-6xl font-black mb-6 relative z-10 tracking-tight">Ready to Scale?</h2>
-          <p className="text-slate-300 mb-8 max-w-xl mx-auto relative z-10 text-lg">Available for freelance opportunities and full-time data positions. Let's solve some data challenges together.</p>
-
-          <div className="flex items-center justify-center gap-2 text-slate-400 mb-10 relative z-10 font-medium">
-            <MapPin size={18} className="text-[#06b6d4]" />
-            <span>Bengaluru, India</span>
+{/* About Me Section (Moved to Bottom) */}
+      <section id="about" className="relative w-full py-24 overflow-hidden bg-transparent z-10">
+        {/* Full-width animated background wavy lines */}
+        <WavyLinesCanvas />
+        
+        {/* Centered content container */}
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-16 fade-up">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-900/20 text-[#06b6d4] mono text-xs font-bold shadow-sm backdrop-blur-sm mb-4">
+              $ cat about_me.md
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black mb-6">
+              About <span className="text-gradient">Me</span>
+            </h2>
+            <p className="text-slate-800 dark:text-slate-400 text-lg max-w-3xl mx-auto leading-relaxed text-justify md:text-center">
+              Driven by curiosity and strategic thinking, I bridge the gap between data and decision-making to create measurable business impact.
+            </p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-6 relative z-10">
-            <a href="https://mail.google.com/mail/?view=cm&fs=1&to=irahuladhikari@gmail.com" target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-lg font-bold hover:scale-105 transition-all shadow-lg text-sm border border-slate-600">
-              <Mail size={18} /> Email
-            </a>
-            <a href="https://wa.me/917737006542" target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] px-8 py-4 rounded-lg font-bold hover:scale-105 transition-all shadow-lg text-sm border border-[#25D366]/50">
-              <MessageCircle size={18} /> WhatsApp
-            </a>
+          {/* Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+            {/* Left Column - Profile Card */}
+            <div className="lg:col-span-5 flex flex-col items-center text-center fade-up delay-100">
+              <div className="relative w-[280px] sm:w-[320px] h-[350px] sm:h-[400px] mb-4 group select-none flex items-center justify-center">
+                {/* Back glowing ambient light with dynamic pulse (deep blue matching the background) */}
+                <div className="absolute top-[40%] left-[50%] -translate-x-[50%] -translate-y-[50%] w-72 h-72 rounded-full bg-[#1e40af]/15 blur-3xl pointer-events-none z-0 animate-pulse" />
+                
+                {/* Submerged transparent cutout image with circular edge-blending mask to prevent cropping */}
+                <img
+                  src="/rahul-about-nobg.png"
+                  alt="Rahul Adhikari"
+                  className="w-full h-full object-cover relative z-10 opacity-90 group-hover:opacity-100 transition-opacity duration-700"
+                  style={{
+                    WebkitMaskImage: 'radial-gradient(ellipse at 50% 25%, rgba(0,0,0,1) 45%, rgba(0,0,0,0.8) 70%, rgba(0,0,0,0) 92%)',
+                    maskImage: 'radial-gradient(ellipse at 50% 25%, rgba(0,0,0,1) 45%, rgba(0,0,0,0.8) 70%, rgba(0,0,0,0) 92%)',
+                    filter: 'drop-shadow(0 0 25px rgba(29,78,216,0.25)) drop-shadow(0 0 10px rgba(99,102,241,0.15))'
+                  }}
+                />
+                
+                {/* Dark oval vignette overlay to blend photo edges organically */}
+                <div 
+                  className="absolute inset-0 pointer-events-none z-20"
+                  style={{
+                    background: `radial-gradient(ellipse at 50% 25%, rgba(${dark ? '15,23,42' : '250,250,250'},0) 30%, rgba(${dark ? '15,23,42' : '250,250,250'},0.9) 70%, rgba(${dark ? '15,23,42' : '250,250,250'},1) 94%)`
+                  }}
+                />
+
+                {/* Glowing ash/debris canvas overlay */}
+                <AboutDebrisCanvas />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-1">Rahul Adhikari</h3>
+              <p className="text-sm font-bold text-[#06b6d4] tracking-wide mb-6">Data Analyst &amp; BI Specialist</p>
+
+            {/* Social Icons */}
             <div className="flex items-center gap-4">
-              <a href="https://linkedin.com/in/irahuladhikari" target="_blank" rel="noreferrer" className="p-4 bg-white/5 hover:bg-white/10 rounded-lg backdrop-blur-sm transition-colors border border-white/10 hover:border-cyan-500/30 hover:text-cyan-400">
-                <Linkedin size={20} />
+              {[
+                { icon: <Linkedin size={18} />, href: 'https://linkedin.com/in/irahuladhikari', label: 'LinkedIn' },
+                { icon: <Github size={18} />, href: 'https://github.com/ursrahuladhikari', label: 'GitHub' },
+                { icon: <Mail size={18} />, href: 'mailto:irahuladhikari@gmail.com', label: 'Email' },
+                { icon: <Instagram size={18} />, href: 'https://instagram.com/ursrahuladhikari', label: 'Instagram' },
+              ].map((social, idx) => (
+                <a
+                  key={idx}
+                  href={social.href}
+                  target={social.href.startsWith('http') ? '_blank' : undefined}
+                  rel={social.href.startsWith('http') ? 'noreferrer' : undefined}
+                  aria-label={social.label}
+                  className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/50 text-slate-500 dark:text-slate-400 hover:text-[#06b6d4] dark:hover:text-[#06b6d4] hover:border-[#06b6d4]/40 dark:hover:border-[#06b6d4]/40 transition-all hover:scale-110 shadow-sm"
+                >
+                  {social.icon}
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Column - Who I Am & Details */}
+          <div className="lg:col-span-7 space-y-6 fade-up delay-200">
+            {/* Who I Am Card */}
+            <div className="glass-card p-8 rounded-2xl border border-slate-200 dark:border-slate-700/50">
+              <div className="flex items-center gap-3 mb-4 text-[#06b6d4]">
+                <User size={20} />
+                <h4 className="text-lg font-bold text-slate-800 dark:text-slate-200">Who I Am</h4>
+              </div>
+              <p className="text-slate-700 dark:text-slate-300 leading-relaxed mb-4 text-justify">
+                I'm <strong className="font-bold text-slate-900 dark:text-slate-100">Rahul Adhikari</strong>, a data-driven professional based in <span className="text-[#06b6d4] font-bold">Bengaluru, India</span>. With over 3.5 years of hands-on experience, I specialize in building end-to-end data solutions — from crafting complex SQL queries and designing star-schema data models to building interactive Power BI dashboards that drive real business decisions.
+              </p>
+              <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-justify">
+                My toolkit spans <span className="text-[#ff1493] font-bold">Power BI, DAX, SQL, Python, BigQuery</span>, and <span className="text-[#ff1493] font-bold">Generative AI / ML</span>. I'm passionate about automation, ETL pipelines, and turning messy datasets into clean, actionable insights. Whether it's designing a KPI dashboard for stakeholders or building an ML model, I bring precision and a product mindset to every project.
+              </p>
+            </div>
+
+            {/* Location & Experience Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="glass-card p-6 rounded-2xl border border-slate-200 dark:border-slate-700/50 flex flex-col justify-center">
+                <div className="flex items-center gap-3 text-[#06b6d4] mb-2">
+                  <MapPin size={18} />
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mono">Location</span>
+                </div>
+                <p className="text-base font-bold text-slate-800 dark:text-slate-100">Bengaluru, India</p>
+              </div>
+
+              <div className="glass-card p-6 rounded-2xl border border-slate-200 dark:border-slate-700/50 flex flex-col justify-center">
+                <div className="flex items-center gap-3 text-[#06b6d4] mb-2">
+                  <Briefcase size={18} />
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mono">Experience</span>
+                </div>
+                <p className="text-base font-bold text-slate-800 dark:text-slate-100">3.5+ Years Professional</p>
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex flex-wrap gap-4 pt-4">
+              <a
+                href="https://mail.google.com/mail/?view=cm&fs=1&to=irahuladhikari@gmail.com"
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 min-w-[180px] py-3 px-5 rounded-xl bg-pink-gradient text-white text-xs sm:text-sm font-bold hover:scale-102 transition-transform text-center shadow-md flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+              >
+                <Mail size={18} className="shrink-0" /> Let's Work Together
               </a>
-              <a href="https://github.com/ursrahuladhikari" target="_blank" rel="noreferrer" className="p-4 bg-white/5 hover:bg-white/10 rounded-lg backdrop-blur-sm transition-colors border border-white/10 hover:border-cyan-500/30 hover:text-cyan-400">
-                <Github size={20} />
+              
+              <a
+                href="https://wa.me/917737006542"
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 min-w-[180px] py-3 px-5 rounded-xl border border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-500 text-xs sm:text-sm font-bold hover:scale-102 transition-all text-center flex items-center justify-center gap-2 whitespace-nowrap"
+              >
+                <MessageCircle size={18} className="shrink-0" /> WhatsApp
+              </a>
+
+              <a
+                href="/Rahul Adhikari_Data Analyst_BI Analyst.pdf"
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 min-w-[180px] py-3 px-5 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-bold hover:scale-102 transition-all text-center flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+              >
+                <FileText size={18} className="shrink-0" /> Download Resume
               </a>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <footer className="py-12 border-t border-slate-200 dark:border-slate-800 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <p className="text-sm font-medium text-slate-500">© {new Date().getFullYear()} Rahul Adhikari</p>
-          </div>
-          <div className="flex items-center gap-4 text-xs text-slate-400 font-mono tracking-wider">
-            <span>BUILT WITH CODE &</span>
-            <div className="w-2 h-2 rounded-full bg-[#ff1493] pink-glow animate-pulse" />
+      {/* Footer */}
+      <footer className="border-t border-slate-200 dark:border-slate-800 py-12 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+            {/* Left — Logo & name */}
+            <div className="flex items-center gap-4">
+              <img src="/logo.png" alt="RA Logo" className="h-12 w-auto object-contain opacity-80" />
+              <div>
+                <p className="font-bold text-slate-700 dark:text-slate-300">Rahul Adhikari</p>
+              </div>
+            </div>
+
+            {/* Right — Design info & copyright */}
+            <div className="text-center md:text-right">
+              <div className="text-xs text-slate-400 font-mono tracking-wider mb-1">
+                DESIGNED & DEVELOPED WITH PRECISION
+              </div>
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                © {new Date().getFullYear()} Rahul Adhikari. All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
       </footer>
+    </>
+  )}
 
       {/* Cookie Consent Banner */}
       <div className={`fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[100] transition-all duration-700 ease-out w-[calc(100%-2rem)] max-w-sm ${cookieConsent === 'pending' ? 'translate-y-0 opacity-100' : 'translate-y-16 opacity-0 pointer-events-none'}`}>
