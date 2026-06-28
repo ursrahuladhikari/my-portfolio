@@ -64,6 +64,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDark, onBackTo
   
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   
@@ -98,9 +99,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDark, onBackTo
         list.push({ id: doc.id, ...doc.data() } as Inquiry);
       });
       setInquiries(list);
+      setError(null);
       setLoading(false);
     }, (err) => {
       console.error("Firestore read error:", err);
+      setError(err.message);
       setLoading(false);
     });
 
@@ -509,6 +512,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDark, onBackTo
                   <div className="flex flex-col items-center justify-center py-20 gap-3">
                     <div className="w-8 h-8 rounded-full border-3 border-pink-500/20 border-t-pink-500 animate-spin" />
                     <span className="text-xs font-mono text-slate-400">LOADING INQUIRIES...</span>
+                  </div>
+                ) : error ? (
+                  <div className={`glass-card p-12 rounded-2xl border text-center border-red-500/30 ${
+                    isDark ? 'bg-red-950/10' : 'bg-red-50'
+                  }`}>
+                    <AlertTriangle size={24} className="mx-auto text-red-500 mb-3" />
+                    <h3 className="font-bold text-red-500 mb-1">Database Read Error</h3>
+                    <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'} max-w-md mx-auto mb-2`}>
+                      {error}
+                    </p>
+                    <p className="text-[10px] text-slate-500 max-w-sm mx-auto">
+                      Please check your Firestore rules in Firebase Console. Make sure they allow read access for authenticated users or admin@rahuladhikari.com.
+                    </p>
                   </div>
                 ) : filteredInquiries.length === 0 ? (
                   <div className={`glass-card p-12 rounded-2xl border text-center ${
