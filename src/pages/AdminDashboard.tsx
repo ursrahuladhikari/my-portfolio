@@ -170,18 +170,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDark, onBackTo
   };
 
   const getStatusBadge = (status: string) => {
-    const base = "px-2.5 py-1 rounded-full text-xs font-bold tracking-wider uppercase inline-flex items-center gap-1.5 shadow-sm";
+    const base = "px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase inline-flex items-center gap-1 shadow-sm";
     switch (status) {
       case 'new':
-        return `${base} bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-[#ff1493] border border-pink-200 dark:border-pink-800/30 animate-pulse`;
+        return (
+          <span className={`${base} bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-[#ff1493] border border-pink-200 dark:border-pink-800/30 animate-pulse`}>
+            New
+          </span>
+        );
       case 'in-progress':
-        return `${base} bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30`;
+        return (
+          <span className={`${base} bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30`}>
+            In Progress
+          </span>
+        );
       case 'responded':
-        return `${base} bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 border border-sky-200 dark:border-sky-800/30`;
+        return (
+          <span className={`${base} bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 border border-sky-200 dark:border-sky-800/30`}>
+            Responded
+          </span>
+        );
       case 'completed':
-        return `${base} bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30`;
+        return (
+          <span className={`${base} bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30`}>
+            Completed
+          </span>
+        );
       default:
-        return `${base} bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400`;
+        return (
+          <span className={`${base} bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400`}>
+            {status}
+          </span>
+        );
     }
   };
 
