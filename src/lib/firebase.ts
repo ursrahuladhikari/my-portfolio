@@ -1,24 +1,18 @@
 // ── Firebase Configuration ──
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getAuth, Auth } from 'firebase/auth';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'demo-api-key',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'demo-app.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'demo-app',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'demo-app.appspot.com',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '123456789',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:123456789:web:123456789',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDK9xdbOMoq-wAMh-kYEZvFVOoLGTxcSik",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "rahul-portfolio-9b31a.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "rahul-portfolio-9b31a",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "rahul-portfolio-9b31a.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1005091595059",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1005091595059:web:88b5a390e1f3ade5ded446",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-HKGSNDSLVQ"
 };
 
-let app: FirebaseApp | undefined;
-try {
-  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-} catch (e) {
-  console.warn("Firebase failed to initialize:", e);
-}
-
-export const db: Firestore = app ? getFirestore(app) : ({} as Firestore);
-export const auth: Auth = app ? getAuth(app) : ({} as Auth);
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+export const db = getFirestore(app);
+export const auth = getAuth(app);
