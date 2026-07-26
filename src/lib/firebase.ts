@@ -4,13 +4,13 @@ import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDK9xdbOMoq-wAMh-kYEZvFVOoLGTxcSik",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "rahul-portfolio-9b31a.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "rahul-portfolio-9b31a",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "rahul-portfolio-9b31a.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1005091595059",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1005091595059:web:88b5a390e1f3ade5ded446",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-HKGSNDSLVQ"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyD16jpB9vgGs72oX6XoTkS_p9adCNoJl2w",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "my-portfolio-5f845.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "my-portfolio-5f845",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "my-portfolio-5f845.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "981731381702",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:981731381702:web:cfd777fcea8e0f982562c7",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-K7XMZQB0RY"
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
